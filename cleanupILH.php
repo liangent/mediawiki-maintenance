@@ -7,6 +7,7 @@ require_once( dirname( __FILE__ ) . '/Maintenance.php' );
 class CleanupILH extends Maintenance {
 
 	static $templates = null;
+	static $suffix = null;
 
 	public function __construct() {
 		parent::__construct();
@@ -17,14 +18,14 @@ class CleanupILH extends Maintenance {
 
 	static function fallbackArray( &$a, $b ) {
 		for ( $i = 0; $i < count( $a ); $i++ ) {
-			if ( !$a[$i] ) {
+			if ( $a[$i] === false || $a[$i] === null || trim( $a[$i] ) === '' ) {
 				$a[$i] = $b[$i];
 			}
 		}
 	}
 
 	public function cleanupTitle( $title, $ident = '', $recur = true ) {
-		global $wgContLang, $wgLabs;
+		global $wgContLang, $wgLabs, $wgConf, $wgDBname, $wgLocalInterwiki;
 
 		static $cleanedup = array();
 		static $parserOutput = null;
@@ -52,7 +53,7 @@ class CleanupILH extends Maintenance {
 		$otext = $text = Revision::newFromTitle( $title )->getText();
 		# First, find out all links to check
 		$matches = array();
-		$lang = '(?:ar|de|en|es|fi|fr|it|ja|ms|nl|no|pl|pt|ru|sv|ko|vi|tr|da)';
+		$lang = '(ar|de|en|es|fi|fr|it|ja|ms|nl|no|pl|pt|ru|sv|ko|vi|tr|da)';
 		$ilhRe = '/\{\{\s*(?:Internal[_ ]link[_ ]helper\/' . $lang
 			. '|Link-' . $lang . '|' . $lang . '-link)\s*'
 			. '(?:\|\s*([^|}]*?)\s*)?' # Local page name
@@ -60,7 +61,7 @@ class CleanupILH extends Maintenance {
 			. '(?:\|\s*([^|}]*?)\s*)?' # Text
 			. '\}\}/i';
 		$transRe = '/\{\{\s*(?:Translink|Tsl)\s*'
-			. '(?:\|\s*[^|}]*\s*)?' # Lang
+			. '(?:\|\s*([^|}]*?)\s*)?' # Lang
 			. '(?:\|\s*([^|}]*?)\s*)?' # Interwiki page name
 			. '(?:\|\s*([^|}]*?)\s*)?' # Local page name
 			. '(?:\|\s*([^|}]*?)\s*)?' # Text
@@ -68,12 +69,15 @@ class CleanupILH extends Maintenance {
 		$batch = new LinkBatch();
 		$titles = array();
 		preg_match_all( $ilhRe, $text, $matches, PREG_PATTERN_ORDER );
-		list( $templates, $locals, $interwikis, $descs ) = $matches;
+		list( $templates, $langs, $langsB, $langsC, $locals, $interwikis, $descs ) = $matches;
+		self::fallbackArray( $langs, $langsB );
+		self::fallbackArray( $langs, $langsC );
 		self::fallbackArray( $interwikis, $locals );
 		preg_match_all( $transRe, $text, $matches, PREG_PATTERN_ORDER );
-		list( $templates2, $interwikis2, $locals2, $descs2 ) = $matches;
+		list( $templates2, $langs2, $interwikis2, $locals2, $descs2 ) = $matches;
 		self::fallbackArray( $locals2, $interwikis2 );
 		$templates = array_merge( $templates, $templates2 );
+		$langs = array_merge( $langs, $langs2 );
 		$interwikis = array_merge( $interwikis, $interwikis2 );
 		$locals = array_merge( $locals, $locals2 );
 		$descs = array_merge( $descs, $descs2 );
@@ -86,8 +90,69 @@ class CleanupILH extends Maintenance {
 		}
 		$lb->execute();
 		for ( $i = 0; $i < count( $templates ); $i++ ) {
-			$wgContLang->findVariantLink( $locals[$i], $titles[$i] );
-			if ( $titles[$i] && $titles[$i]->isKnown() ) {
+			$wgContLang->findVariantLink( $locals[$i], $titles[$i], true );
+			$localKnown = $titles[$i] && $titles[$i]->isKnown();
+			if ( !$localKnown ) {
+				if ( is_null( self::$suffix ) ) {
+					list( $site, $lang ) = $wgConf->siteFromDB( $wgDBname );
+					self::$suffix = $site == 'wikipedia' ? 'wiki' : $site;
+				}
+				$fdbn = str_replace( '-', '_', $langs[$i] ) . self::$suffix;
+				try {
+					$fdbr = wfGetDB( DB_SLAVE, array(), $fdbn );
+				} catch ( DBError $e ) {
+					$fdbr = false;
+					$this->output( " (dbcerror $fdbn)" );
+				}
+				$ll_title = false;
+				if ( $fdbr ) {
+					$ftitle = Title::makeTitle( NS_MAIN, $interwikis[$i] );
+					if ( $ftitle ) {
+						try {
+							$ll_title = $fdbr->selectField(
+								array( 'page', 'langlinks' ),
+								'll_title',
+								array(
+									'page_namespace' => $ftitle->getNamespace(),
+									'page_title' => $ftitle->getDBKey(),
+									'page_id = ll_from',
+									'll_lang' => $wgLocalInterwiki,
+								),
+								__METHOD__
+							);
+						} catch ( DBError $e ) {
+							$ll_title = false;
+							$this->output( " (dbqerror $fdbn)" );
+						}
+					}
+				}
+				if ( $ll_title !== false ) {
+					$newTitle = Title::newFromText( $ll_title );
+					$wgContLang->findVariantLink( $ll_title, $newTitle, true );
+					if ( $newTitle ) {
+						# Hooray we managed to find an alias!
+						$localKnown = true;
+						$this->output( " (rd [[{$titles[$i]->getPrefixedText()}]] "
+							. "=> [[{$newTitle->getPrefixedText()}]]" );
+						# Create redirect
+						$contentHandler = ContentHandler::getForTitle( $titles[$i] );
+						$redirectContent = $contentHandler->makeRedirectContent( $newTitle );
+						if ( WikiPage::factory( $titles[$i] )->doEdit(
+							$redirectContent->serialize(),
+							wfMessage( 'ts-cleanup-ilh-redirect' )->params(
+								$newTitle->getPrefixedText(),
+								$title->getPrefixedText(),
+								$langs[$i], $interwikis[$i]
+							)->text()
+						)->isOK() ) {
+							$this->output( ' done)' );
+						} else {
+							$this->output( ' ERROR)' );
+						}
+					}
+				}
+			}
+			if ( $localKnown ) {
 				$replace = '[[';
 				if ( $titles[$i]->getNamespace() == NS_FILE
 					|| $titles[$i]->getNamespace() == NS_CATEGORY
