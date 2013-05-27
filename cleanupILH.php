@@ -14,6 +14,7 @@ class CleanupILH extends Maintenance {
 		$this->addOption( 'maxlag', 'Do not run if DB lags more than this time.' );
 		$this->addOption( 'category', 'Process pages in this category.' );
 		$this->addOption( 'random-count', 'Process some random pages using related templates.' );
+		$this->titleKnown = array();
 	}
 
 	static function fallbackArray( &$a, $b ) {
@@ -81,6 +82,7 @@ class CleanupILH extends Maintenance {
 		$interwikis = array_merge( $interwikis, $interwikis2 );
 		$locals = array_merge( $locals, $locals2 );
 		$descs = array_merge( $descs, $descs2 );
+		self::fallbackArray( $descs, $locals );
 		$lb = new LinkBatch( $titles );
 		foreach ( $locals as $titleText ) {
 			$lb->addObj( $titles[] = Title::newFromText( $titleText ) );
@@ -91,7 +93,8 @@ class CleanupILH extends Maintenance {
 		$lb->execute();
 		for ( $i = 0; $i < count( $templates ); $i++ ) {
 			$wgContLang->findVariantLink( $locals[$i], $titles[$i], true );
-			$localKnown = $titles[$i] && $titles[$i]->isKnown();
+			$localKnown = $titles[$i] && ( $titles[$i]->isKnown()
+				|| isset( $this->titleKnown[$titles[$i]->getPrefixedDBKey()] ) );
 			if ( !$localKnown ) {
 				if ( is_null( self::$suffix ) ) {
 					list( $site, $lang ) = $wgConf->siteFromDB( $wgDBname );
@@ -129,25 +132,32 @@ class CleanupILH extends Maintenance {
 				if ( $ll_title !== false ) {
 					$newTitle = Title::newFromText( $ll_title );
 					$wgContLang->findVariantLink( $ll_title, $newTitle, true );
-					if ( $newTitle ) {
+					if ( $newTitle && ( $newTitle->isKnown()
+						|| $this->titleKnown[$newTitle->getPrefixedDBKey()] )
+					) {
 						# Hooray we managed to find an alias!
 						$localKnown = true;
-						$this->output( " (rd [[{$titles[$i]->getPrefixedText()}]] "
-							. "=> [[{$newTitle->getPrefixedText()}]]" );
-						# Create redirect
-						$contentHandler = ContentHandler::getForTitle( $titles[$i] );
-						$redirectContent = $contentHandler->makeRedirectContent( $newTitle );
-						if ( WikiPage::factory( $titles[$i] )->doEdit(
-							$redirectContent->serialize(),
-							wfMessage( 'ts-cleanup-ilh-redirect' )->params(
-								$newTitle->getPrefixedText(),
-								$title->getPrefixedText(),
-								$langs[$i], $interwikis[$i]
-							)->text(), EDIT_NEW
-						)->isOK() ) {
-							$this->output( ' done)' );
+						if ( $titles[$i] ) {
+							$this->output( " (rd [[{$titles[$i]->getPrefixedText()}]] "
+								. "=> [[{$newTitle->getPrefixedText()}]]" );
+							# Create redirect
+							$contentHandler = ContentHandler::getForTitle( $titles[$i] );
+							$redirectContent = $contentHandler->makeRedirectContent( $newTitle );
+							if ( WikiPage::factory( $titles[$i] )->doEdit(
+								$redirectContent->serialize(),
+								wfMessage( 'ts-cleanup-ilh-redirect' )->params(
+									$newTitle->getPrefixedText(),
+									$title->getPrefixedText(),
+									$langs[$i], $interwikis[$i]
+								)->text(), EDIT_NEW
+							)->isOK() ) {
+								$this->output( ' done)' );
+								$this->titleKnown[$titles[$i]->getPrefixedDBKey()] = true;
+							} else {
+								$this->output( ' ERROR)' );
+							}
 						} else {
-							$this->output( ' ERROR)' );
+							$titles[$i] = $newTitle;
 						}
 					}
 				}
