@@ -210,6 +210,7 @@ class CleanupILH extends Maintenance {
 				}
 				if ( is_string( $descs[$i] ) && trim( $descs[$i] ) !== '' ) {
 					$nt = Title::newFromText( $descs[$i] );
+					$wgContLang->findVariantLink( $descs[$i], $nt, true );
 					if ( $nt && $nt->equals( $titles[$i] ) ) {
 						$replace .= $descs[$i];
 					} else {
