@@ -143,7 +143,7 @@ class CleanupILH extends Maintenance {
 								$newTitle->getPrefixedText(),
 								$title->getPrefixedText(),
 								$langs[$i], $interwikis[$i]
-							)->text()
+							)->text(), EDIT_NEW
 						)->isOK() ) {
 							$this->output( ' done)' );
 						} else {
@@ -190,7 +190,7 @@ class CleanupILH extends Maintenance {
 			$this->output( "\tsaving..." );
 			if ( WikiPage::factory( $title )->doEdit( $text,
 				wfMessage( 'ts-cleanup-ilh' )->text(),
-			EDIT_MINOR )->isOK() ) {
+			EDIT_MINOR, $title->getLatestRevID() )->isOK() ) {
 				$this->output( " done.\n" );
 			} else {
 				$this->output( " ERROR.\n" );
