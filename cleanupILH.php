@@ -18,7 +18,7 @@ class CleanupILH extends Maintenance {
 
 	static function fallbackArray( &$a, $b ) {
 		for ( $i = 0; $i < count( $a ); $i++ ) {
-			if ( $a[$i] === false || $a[$i] === null || trim( $a[$i] ) === '' ) {
+			if ( !is_string( $a[$i] ) || trim( $a[$i] ) === '' ) {
 				$a[$i] = $b[$i];
 			}
 		}
@@ -159,7 +159,7 @@ class CleanupILH extends Maintenance {
 				) {
 					$replace .= ':';
 				}
-				if ( $descs[$i] ) {
+				if ( is_string( $descs[$i] ) && trim( $descs[$i] ) !== '' ) {
 					$nt = Title::newFromText( $descs[$i] );
 					if ( $nt && $nt->equals( $titles[$i] ) ) {
 						$replace .= $descs[$i];
