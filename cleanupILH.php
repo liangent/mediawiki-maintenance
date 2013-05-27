@@ -123,6 +123,32 @@ class CleanupILH extends Maintenance {
 								),
 								__METHOD__
 							);
+							if ( $ll_title === false ) {
+								$ll_title = $fdbr->selectField(
+									array(
+										'redirect', 'langlinks',
+										'rdpage' => 'page', 'dstpage' => 'page',
+									),
+									'll_title',
+									array(
+										'rdpage.page_namespace' => $ftitle->getNamespace(),
+										'rdpage.page_title' => $ftitle->getDBKey(),
+										'rdpage.page_is_redirect' => true,
+										'rdpage.page_id = rd_from',
+										'dstpage.page_namespace = rd_namespace',
+										'dstpage.page_title = rd_title',
+										$fdbr->makeList( array(
+											# https://bugzilla.wikimedia.org/48853
+											$fdbr->makeList( array(
+												'rd_interwiki' => null ), LIST_OR ),
+											'rd_interwiki' => '',
+										), LIST_OR ),
+										'dstpage.page_id = ll_from',
+										'll_lang' => $wgLocalInterwiki,
+									),
+									__METHOD__
+								);
+							}
 						} catch ( DBError $e ) {
 							$ll_title = false;
 							$this->output( " (dbqerror $fdbn)" );
