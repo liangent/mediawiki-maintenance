@@ -12,7 +12,9 @@ class CleanupILH extends Maintenance {
 	public function __construct() {
 		parent::__construct();
 		$this->addOption( 'maxlag', 'Do not run if DB lags more than this time.' );
+		$this->addOption( 'page', 'Specify a page to work on.' );
 		$this->addOption( 'category', 'Process pages in this category.' );
+		$this->addOption( 'random', 'Specify a point to start random processing.' );
 		$this->addOption( 'random-count', 'Process some random pages using related templates.' );
 		$this->titleKnown = array();
 	}
@@ -274,7 +276,15 @@ class CleanupILH extends Maintenance {
 		}
 		$titles = null;
 		$recursive = null;
-		if ( $this->hasOption( 'category' ) ) {
+		if ( $this->hasOption( 'page' ) ) {
+			$title = Title::newFromText( $this->getOption( 'page' ) );
+			if ( $title ) {
+				$titles = array( $title );
+				$recursive = true;
+				$this->output( "Working on given page [[{$title->getPrefixedText()}]].\n" );
+			}
+		}
+		if ( is_null( $titles ) && $this->hasOption( 'category' ) ) {
 			$cat = Category::newFromName( $this->getOption( 'category' ) );
 			if ( $cat ) {
 				$titles = $cat->getMembers();
@@ -286,7 +296,11 @@ class CleanupILH extends Maintenance {
 			$count = intval( $this->getOption( 'random-count' ) );
 			if ( $count > 0 ) {
 				$dbr = wfGetDB( DB_SLAVE );
-				$rand = wfRandom();
+				if ( $this->hasOption( 'random' ) ) {
+					$rand = floatval( $this->getOption( 'random' ) );
+				} else {
+					$rand = wfRandom();
+				}
 				$res = $dbr->select(
 					array( 'page', 'templatelinks' ),
 					array( 'page.*' ),
@@ -313,7 +327,7 @@ class CleanupILH extends Maintenance {
 			}
 		}
 		if ( is_null( $titles ) ) {
-			$this->output( "Please specify either category or random-count.\n" );
+			$this->output( "Please specify one of page, category or random-count.\n" );
 			return;
 		}
 		foreach ( $titles as $title ) {
