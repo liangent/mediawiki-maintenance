@@ -25,8 +25,111 @@ class CleanupILH extends Maintenance {
 		}
 	}
 
+	private function findAlias( $pageTitle, &$title, $lang, $interwiki, $local ) {
+		global $wgContLang, $wgConf, $wgDBname, $wgLocalInterwiki;
+
+		if ( is_null( self::$suffix ) ) {
+			list( $site, $_ ) = $wgConf->siteFromDB( $wgDBname );
+			self::$suffix = $site == 'wikipedia' ? 'wiki' : $site;
+		}
+		$fdbn = str_replace( '-', '_', $lang ) . self::$suffix;
+		try {
+			$fdbr = wfGetDB( DB_SLAVE, array(), $fdbn );
+		} catch ( DBError $e ) {
+			$fdbr = false;
+			$this->output( " (dbcerror $fdbn)" );
+		}
+		if ( !$fdbr ) {
+			return false;
+		}
+
+		$ftitle = Title::makeTitle( NS_MAIN, $interwiki );
+		if ( !$ftitle ) {
+			return false;
+		}
+
+		try {
+			$ll_title = $fdbr->selectField(
+				array( 'page', 'langlinks' ),
+				'll_title',
+				array(
+					'page_namespace' => $ftitle->getNamespace(),
+					'page_title' => $ftitle->getDBKey(),
+					'page_id = ll_from',
+					'll_lang' => $wgLocalInterwiki,
+				),
+				__METHOD__
+			);
+			if ( $ll_title === false ) {
+				$ll_title = $fdbr->selectField(
+					array(
+						'redirect', 'langlinks',
+						'rdpage' => 'page', 'dstpage' => 'page',
+					),
+					'll_title',
+					array(
+						'rdpage.page_namespace' => $ftitle->getNamespace(),
+						'rdpage.page_title' => $ftitle->getDBKey(),
+						'rdpage.page_is_redirect' => true,
+						'rdpage.page_id = rd_from',
+						'dstpage.page_namespace = rd_namespace',
+						'dstpage.page_title = rd_title',
+						$fdbr->makeList( array(
+							# https://bugzilla.wikimedia.org/48853
+							$fdbr->makeList( array( 'rd_interwiki' => null ), LIST_OR ),
+							'rd_interwiki' => '',
+						), LIST_OR ),
+						'dstpage.page_id = ll_from',
+						'll_lang' => $wgLocalInterwiki,
+					),
+					__METHOD__
+				);
+			}
+		} catch ( DBError $e ) {
+			$this->output( " (dbqerror $fdbn)" );
+			return false;
+		}
+		if ( $ll_title === false ) {
+			return false;
+		}
+
+		$newTitle = Title::newFromText( $ll_title );
+		$wgContLang->findVariantLink( $ll_title, $newTitle, true );
+		if ( $newTitle && ( $newTitle->isKnown()
+			|| $this->titleKnown[$newTitle->getPrefixedDBKey()] )
+		) {
+			# Hooray we managed to find an alias!
+			if ( $title ) {
+				$this->output( " (rd [[{$title->getPrefixedText()}]] "
+					. "=> [[{$newTitle->getPrefixedText()}]]" );
+				# Create redirect
+				$contentHandler = ContentHandler::getForTitle( $title );
+				$redirectContent = $contentHandler->makeRedirectContent( $newTitle );
+				if ( WikiPage::factory( $title )->doEdit(
+					$redirectContent->serialize(),
+					wfMessage( 'ts-cleanup-ilh-redirect' )->params(
+						$newTitle->getPrefixedText(),
+						$pageTitle->getPrefixedText(),
+						$lang, $interwiki
+					)->text(), EDIT_NEW
+				)->isOK() ) {
+					$this->output( ' done)' );
+					$this->titleKnown[$title->getPrefixedDBKey()] = true;
+				} else {
+					$this->output( ' ERROR)' );
+				}
+			} else {
+				$title = $newTitle;
+				$this->output( " (alias [[$local]] => [[{$title->getPrefixedDBKey()}]])" );
+			}
+			return true;
+		}
+
+		return false;
+	}
+
 	public function cleanupTitle( $title, $ident = '', $recur = true ) {
-		global $wgContLang, $wgLabs, $wgConf, $wgDBname, $wgLocalInterwiki;
+		global $wgContLang, $wgLabs;
 
 		static $cleanedup = array();
 		static $parserOutput = null;
@@ -96,97 +199,7 @@ class CleanupILH extends Maintenance {
 			$localKnown = $titles[$i] && ( $titles[$i]->isKnown()
 				|| isset( $this->titleKnown[$titles[$i]->getPrefixedDBKey()] ) );
 			if ( !$localKnown ) {
-				if ( is_null( self::$suffix ) ) {
-					list( $site, $lang ) = $wgConf->siteFromDB( $wgDBname );
-					self::$suffix = $site == 'wikipedia' ? 'wiki' : $site;
-				}
-				$fdbn = str_replace( '-', '_', $langs[$i] ) . self::$suffix;
-				try {
-					$fdbr = wfGetDB( DB_SLAVE, array(), $fdbn );
-				} catch ( DBError $e ) {
-					$fdbr = false;
-					$this->output( " (dbcerror $fdbn)" );
-				}
-				$ll_title = false;
-				if ( $fdbr ) {
-					$ftitle = Title::makeTitle( NS_MAIN, $interwikis[$i] );
-					if ( $ftitle ) {
-						try {
-							$ll_title = $fdbr->selectField(
-								array( 'page', 'langlinks' ),
-								'll_title',
-								array(
-									'page_namespace' => $ftitle->getNamespace(),
-									'page_title' => $ftitle->getDBKey(),
-									'page_id = ll_from',
-									'll_lang' => $wgLocalInterwiki,
-								),
-								__METHOD__
-							);
-							if ( $ll_title === false ) {
-								$ll_title = $fdbr->selectField(
-									array(
-										'redirect', 'langlinks',
-										'rdpage' => 'page', 'dstpage' => 'page',
-									),
-									'll_title',
-									array(
-										'rdpage.page_namespace' => $ftitle->getNamespace(),
-										'rdpage.page_title' => $ftitle->getDBKey(),
-										'rdpage.page_is_redirect' => true,
-										'rdpage.page_id = rd_from',
-										'dstpage.page_namespace = rd_namespace',
-										'dstpage.page_title = rd_title',
-										$fdbr->makeList( array(
-											# https://bugzilla.wikimedia.org/48853
-											$fdbr->makeList( array(
-												'rd_interwiki' => null ), LIST_OR ),
-											'rd_interwiki' => '',
-										), LIST_OR ),
-										'dstpage.page_id = ll_from',
-										'll_lang' => $wgLocalInterwiki,
-									),
-									__METHOD__
-								);
-							}
-						} catch ( DBError $e ) {
-							$ll_title = false;
-							$this->output( " (dbqerror $fdbn)" );
-						}
-					}
-				}
-				if ( $ll_title !== false ) {
-					$newTitle = Title::newFromText( $ll_title );
-					$wgContLang->findVariantLink( $ll_title, $newTitle, true );
-					if ( $newTitle && ( $newTitle->isKnown()
-						|| $this->titleKnown[$newTitle->getPrefixedDBKey()] )
-					) {
-						# Hooray we managed to find an alias!
-						$localKnown = true;
-						if ( $titles[$i] ) {
-							$this->output( " (rd [[{$titles[$i]->getPrefixedText()}]] "
-								. "=> [[{$newTitle->getPrefixedText()}]]" );
-							# Create redirect
-							$contentHandler = ContentHandler::getForTitle( $titles[$i] );
-							$redirectContent = $contentHandler->makeRedirectContent( $newTitle );
-							if ( WikiPage::factory( $titles[$i] )->doEdit(
-								$redirectContent->serialize(),
-								wfMessage( 'ts-cleanup-ilh-redirect' )->params(
-									$newTitle->getPrefixedText(),
-									$title->getPrefixedText(),
-									$langs[$i], $interwikis[$i]
-								)->text(), EDIT_NEW
-							)->isOK() ) {
-								$this->output( ' done)' );
-								$this->titleKnown[$titles[$i]->getPrefixedDBKey()] = true;
-							} else {
-								$this->output( ' ERROR)' );
-							}
-						} else {
-							$titles[$i] = $newTitle;
-						}
-					}
-				}
+				$localKnown = $this->findAlias( $title, $titles[$i], $langs[$i], $interwikis[$i], $locals[$i] );
 			}
 			if ( $localKnown ) {
 				$replace = '[[';
