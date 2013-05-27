@@ -78,7 +78,7 @@ class CleanupILH extends Maintenance {
 		list( $templates2, $langs2, $interwikis2, $locals2, $descs2 ) = $matches;
 		self::fallbackArray( $locals2, $interwikis2 );
 		$templates = array_merge( $templates, $templates2 );
-		$langs = array_merge( $langs, $langs2 );
+		$langs = array_map( 'strtolower', array_merge( $langs, $langs2 ) );
 		$interwikis = array_merge( $interwikis, $interwikis2 );
 		$locals = array_merge( $locals, $locals2 );
 		$descs = array_merge( $descs, $descs2 );
