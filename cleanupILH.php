@@ -6,9 +6,13 @@ require_once( dirname( __FILE__ ) . '/Maintenance.php' );
 
 class CleanupILH extends Maintenance {
 
+	static $templates = null;
+
 	public function __construct() {
 		parent::__construct();
 		$this->addOption( 'maxlag', 'Do not run if DB lags more than this time.' );
+		$this->addOption( 'category', 'Process pages in this category.' );
+		$this->addOption( 'random-count', 'Process some random pages using related templates.' );
 	}
 
 	static function fallbackArray( &$a, $b ) {
@@ -139,6 +143,12 @@ class CleanupILH extends Maintenance {
 
 	public function execute() {
 		global $wgContLang;
+		if ( is_null( self::$templates ) ) {
+			self::$templates = array(
+				Title::makeTitleSafe( NS_TEMPLATE, 'Translink' ),
+				Title::makeTitleSafe( NS_TEMPLATE, 'Internal link helper' ),
+			);
+		}
 		if ( $this->hasOption( 'maxlag' ) ) {
 			$maxlag = intval( $this->getOption( 'maxlag' ) );
 			$lag = wfReplag();
@@ -147,11 +157,52 @@ class CleanupILH extends Maintenance {
 				return;
 			}
 		}
-		$it = new AppendIterator();
-		$it->append( Category::newFromName( '有蓝链却未移除内部链接助手模板的页面' )->getMembers() );
-		$it->append( Category::newFromName( 'Trans-Clean' )->getMembers() );
-		foreach ( $it as $title ) {
-			$this->cleanupTitle( $title );
+		$titles = null;
+		$recursive = null;
+		if ( $this->hasOption( 'category' ) ) {
+			$cat = Category::newFromName( $this->getOption( 'category' ) );
+			if ( $cat ) {
+				$titles = $cat->getMembers();
+				$recursive = true;
+				$this->output( "Working on pages in category {$cat->getName()}.\n" );
+			}
+		}
+		if ( is_null( $titles ) && $this->hasOption( 'random-count' ) ) {
+			$count = intval( $this->getOption( 'random-count' ) );
+			if ( $count > 0 ) {
+				$dbr = wfGetDB( DB_SLAVE );
+				$rand = wfRandom();
+				$res = $dbr->select(
+					array( 'page', 'templatelinks' ),
+					array( 'page.*' ),
+					array(
+						'page_id = tl_from',
+						'page_random > ' . $rand,
+						$dbr->makeList( array_map( function( $title ) use ( $dbr ) {
+							return $dbr->makeList( array(
+								'tl_namespace' => $title->getNamespace(),
+								'tl_title' => $title->getDBKey(),
+							), LIST_AND );
+						}, self::$templates ), LIST_OR ),
+					),
+					__METHOD__,
+					array(
+						'DISTINCT',
+						'LIMIT' => $count,
+						'ORDER BY' => 'page_random',
+					)
+				);
+				$titles = TitleArray::newFromResult( $res );
+				$recursive = false;
+				$this->output( "Working on < $count random pages starting from $rand.\n" );
+			}
+		}
+		if ( is_null( $titles ) ) {
+			$this->output( "Please specify either category or random-count.\n" );
+			return;
+		}
+		foreach ( $titles as $title ) {
+			$this->cleanupTitle( $title, '', $recursive );
 		}
 		$this->output( "done\n" );
 	}
