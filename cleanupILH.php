@@ -37,7 +37,7 @@ class CleanupILH extends Maintenance {
 			return;
 		}
 
-		if ( $title->isProtected( 'edit' ) && !( $wgLabs->user->isAllowed( 'protect' ) ) ) {
+		if ( !$title->userCan( 'edit', $wgLabs->user ) ) {
 			# It's unlikely to be problematic, and usually we don't have the right
 			# to clean them up ( = edit them )...
 			$this->output( "\tprotected.\n" );
