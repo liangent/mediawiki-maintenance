@@ -122,7 +122,7 @@ class CleanupILH extends Maintenance {
 				}
 			} else {
 				$title = $newTitle;
-				$this->output( " (alias [[$local]] => [[{$title->getPrefixedDBKey()}]])" );
+				$this->output( " (alias [[$local]] => [[{$title->getPrefixedText()}]])" );
 			}
 			return true;
 		}
