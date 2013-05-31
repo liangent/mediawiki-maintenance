@@ -173,15 +173,15 @@ class CleanupILH extends Maintenance {
 		$lang = '(ar|de|en|es|fi|fr|it|ja|ms|nl|no|pl|pt|ru|sv|ko|vi|tr|da)';
 		$ilhRe = '/\{\{\s*(?:Internal[_ ]link[_ ]helper\/' . $lang
 			. '|Link-' . $lang . '|' . $lang . '-link)\s*'
-			. '(?:\|\s*([^|}]*?)\s*)?' # Local page name
-			. '(?:\|\s*([^|}]*?)\s*)?' # Interwiki page name
-			. '(?:\|\s*([^|}]*?)\s*)?' # Text
+			. '(?:\|\s*(.*?)\s*)?' # Local page name
+			. '(?:\|\s*(.*?)\s*)?' # Interwiki page name
+			. '(?:\|\s*(.*?)\s*)?' # Text
 			. '\}\}/i';
 		$transRe = '/\{\{\s*(?:Translink|Tsl)\s*'
-			. '(?:\|\s*([^|}]*?)\s*)?' # Lang
-			. '(?:\|\s*([^|}]*?)\s*)?' # Interwiki page name
-			. '(?:\|\s*([^|}]*?)\s*)?' # Local page name
-			. '(?:\|\s*([^|}]*?)\s*)?' # Text
+			. '(?:\|\s*(.*?)\s*)?' # Lang
+			. '(?:\|\s*(.*?)\s*)?' # Interwiki page name
+			. '(?:\|\s*(.*?)\s*)?' # Local page name
+			. '(?:\|\s*(.*?)\s*)?' # Text
 			. '\}\}/i';
 		$batch = new LinkBatch();
 		$titles = array();
