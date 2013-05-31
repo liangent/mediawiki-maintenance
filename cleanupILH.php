@@ -112,7 +112,7 @@ class CleanupILH extends Maintenance {
 					wfMessage( 'ts-cleanup-ilh-redirect' )->params(
 						$newTitle->getPrefixedText(),
 						$pageTitle->getPrefixedText(),
-						$lang, $interwiki
+						$lang, $interwiki, $pageTitle->getLatestRevID()
 					)->text(), EDIT_NEW
 				)->isOK() ) {
 					$this->output( ' done)' );
