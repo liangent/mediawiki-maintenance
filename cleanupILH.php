@@ -27,6 +27,17 @@ class CleanupILH extends Maintenance {
 		}
 	}
 
+	static function getOptionalColonForWikiLink( $title, $onTitle ) {
+		if ( in_array( $title->getNamespace(), array( NS_CATEGORY, NS_FILE ) ) ) {
+			return ':';
+		}
+		$iw = $title->getInterwiki();
+		if ( $iw && !$onTitle->isTalkPage() && Language::fetchLanguageName( $iw, null, 'mw' ) ) {
+			return ':';
+		}
+		return '';
+	}
+
 	private function findAlias( $pageTitle, &$title, $lang, $interwiki, $local ) {
 		global $wgContLang, $wgConf, $wgDBname, $wgLocalInterwiki;
 
@@ -204,12 +215,7 @@ class CleanupILH extends Maintenance {
 				$localKnown = $this->findAlias( $title, $titles[$i], $langs[$i], $interwikis[$i], $locals[$i] );
 			}
 			if ( $localKnown ) {
-				$replace = '[[';
-				if ( $titles[$i]->getNamespace() == NS_FILE
-					|| $titles[$i]->getNamespace() == NS_CATEGORY
-				) {
-					$replace .= ':';
-				}
+				$replace = '[[' . self::getOptionalColonForWikiLink( $titles[$i], $title );
 				if ( is_string( $descs[$i] ) && trim( $descs[$i] ) !== '' ) {
 					$nt = Title::newFromText( $descs[$i] );
 					$wgContLang->findVariantLink( $descs[$i], $nt, true );
