@@ -40,7 +40,7 @@ class PopulateCite extends Maintenance {
 				foreach ( $matches[1] as $cite ) {
 					$anchor = Sanitizer::escapeId( Sanitizer::normalizeSectionNameWhitespace( $cite ), 'noninitial' );
 					if ( !isset( $process[$anchor] ) ) {
-						$process[$anchor] = array( $cite, $title->getPrefixedText() );
+						$process[$anchor] = array( $cite, $title );
 						$count++;
 					}
 				}
@@ -97,13 +97,13 @@ class PopulateCite extends Maintenance {
 			}
 		}
 
-		foreach ( $process as $anchor => $citetpt ) {
-			if ( is_array( $citetpt ) ) {
-				list( $cite, $tpt ) = $citetpt;
+		foreach ( $process as $anchor => $citetitle ) {
+			if ( is_array( $citetitle ) ) {
+				list( $cite, $title ) = $citetitle;
 				$rdtitle = null;
-				$this->output( "$anchor: $cite in [[$tpt]] ..." );
+				$this->output( "$anchor: $cite in [[{$title->getPrefixedText()}]] ..." );
 			} else {
-				$rdtitle = $citetpt;
+				$rdtitle = $citetitle;
 				$this->output( "$anchor: <- [[{$rdtitle->getPrefixedText()}]] ..." );
 			}
 			$titletext = $this->getOption( 'template' ) . '/' . $anchor;
@@ -137,11 +137,14 @@ class PopulateCite extends Maintenance {
 			$page = WikiPage::factory( $localtitle );
 			if ( $rdtitle ) {
 				$summary = wfMessage( 'ts-populate-cite-redirect' )
-					->params( $rdtitle->getPrefixedText() )
+					->params( $rdtitle->getPrefixedText(), $rdtitle->getLatestRevId() )
 					->text();
 			} else {
 				$summary = wfMessage( 'ts-populate-cite' )
-					->params( $this->getOption( 'template' ), $cite, $tpt )
+					->params(
+						$this->getOption( 'template' ), $cite,
+						$title->getPrefixedText(), $title->getLatestRevId()
+					)
 					->text();
 			}
 			$status = $page->doEdit( $source, $summary, EDIT_NEW | EDIT_SUPPRESS_RC );
