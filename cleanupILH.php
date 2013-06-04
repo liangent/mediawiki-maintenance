@@ -2,9 +2,9 @@
 /**
  */
 
-require_once( dirname( __FILE__ ) . '/Maintenance.php' );
+require_once( dirname( __FILE__ ) . '/PageMaintenance.php' );
 
-class CleanupILH extends Maintenance {
+class CleanupILH extends PageMaintenance {
 
 	static $templates = null;
 	static $suffix = null;
@@ -12,10 +12,6 @@ class CleanupILH extends Maintenance {
 	public function __construct() {
 		parent::__construct();
 		$this->addOption( 'maxlag', 'Do not run if DB lags more than this time.' );
-		$this->addOption( 'page', 'Specify a page to work on.' );
-		$this->addOption( 'category', 'Process pages in this category.' );
-		$this->addOption( 'random', 'Specify a point to start random processing.' );
-		$this->addOption( 'random-count', 'Process some random pages using related templates.' );
 		$this->titleKnown = array();
 	}
 
@@ -141,11 +137,15 @@ class CleanupILH extends Maintenance {
 		return false;
 	}
 
-	public function cleanupTitle( $title, $ident = '', $recur = true ) {
+	public function executeTitle( $title, $ident = '', $recur = true ) {
 		global $wgContLang, $wgLabs;
 
 		static $cleanedup = array();
 		static $parserOutput = null;
+
+		if ( $this->getPageSource() == 'random' ) {
+			$recur = false;
+		}
 
 		$this->output( $ident . $title->getPrefixedText() );
 		if ( !$title->exists() ) {
@@ -255,17 +255,33 @@ class CleanupILH extends Maintenance {
 			}
 		}
 		if ( $text === $otext && $recur ) {
-			# We should call cleanupTitle on all templates this page uses.
+			# We should call executeTitle on all templates this page uses.
 			# Blue links may be there, maybe invisible from parsed view!
 			# But don't do this recursively?
 			foreach ( $title->getTemplateLinksFrom() as $template ) {
-				$this->cleanupTitle( $template, $ident . '  ', false );
+				$this->executeTitle( $template, $ident . '  ', false );
 			}
 		}
 	}
 
+	public function getRandomQueryInfo() {
+		$db = $this->getDatabase();
+		return array(
+			'tables' => array( 'templatelinks' ),
+			'conds' => array(
+				'page_id = tl_from',
+				$db->makeList( array_map( function( $title ) use ( $db ) {
+					return $db->makeList( array(
+						'tl_namespace' => $title->getNamespace(),
+						'tl_title' => $title->getDBKey(),
+					), LIST_AND );
+				}, self::$templates ), LIST_OR ),
+			),
+			'options' => array( 'DISTINCT' ),
+		);
+	}
+
 	public function execute() {
-		global $wgContLang;
 		if ( is_null( self::$templates ) ) {
 			self::$templates = array(
 				Title::makeTitleSafe( NS_TEMPLATE, 'Translink' ),
@@ -280,66 +296,7 @@ class CleanupILH extends Maintenance {
 				return;
 			}
 		}
-		$titles = null;
-		$recursive = null;
-		if ( $this->hasOption( 'page' ) ) {
-			$title = Title::newFromText( $this->getOption( 'page' ) );
-			if ( $title ) {
-				$titles = array( $title );
-				$recursive = true;
-				$this->output( "Working on given page [[{$title->getPrefixedText()}]].\n" );
-			}
-		}
-		if ( is_null( $titles ) && $this->hasOption( 'category' ) ) {
-			$cat = Category::newFromName( $this->getOption( 'category' ) );
-			if ( $cat ) {
-				$titles = $cat->getMembers();
-				$recursive = true;
-				$this->output( "Working on pages in category {$cat->getName()}.\n" );
-			}
-		}
-		if ( is_null( $titles ) && $this->hasOption( 'random-count' ) ) {
-			$count = intval( $this->getOption( 'random-count' ) );
-			if ( $count > 0 ) {
-				$dbr = wfGetDB( DB_SLAVE );
-				if ( $this->hasOption( 'random' ) ) {
-					$rand = floatval( $this->getOption( 'random' ) );
-				} else {
-					$rand = wfRandom();
-				}
-				$res = $dbr->select(
-					array( 'page', 'templatelinks' ),
-					array( 'page.*' ),
-					array(
-						'page_id = tl_from',
-						'page_random > ' . $rand,
-						$dbr->makeList( array_map( function( $title ) use ( $dbr ) {
-							return $dbr->makeList( array(
-								'tl_namespace' => $title->getNamespace(),
-								'tl_title' => $title->getDBKey(),
-							), LIST_AND );
-						}, self::$templates ), LIST_OR ),
-					),
-					__METHOD__,
-					array(
-						'DISTINCT',
-						'LIMIT' => $count,
-						'ORDER BY' => 'page_random',
-					)
-				);
-				$titles = TitleArray::newFromResult( $res );
-				$recursive = false;
-				$this->output( "Working on < $count random pages starting from $rand.\n" );
-			}
-		}
-		if ( is_null( $titles ) ) {
-			$this->output( "Please specify one of page, category or random-count.\n" );
-			return;
-		}
-		foreach ( $titles as $title ) {
-			$this->cleanupTitle( $title, '', $recursive );
-		}
-		$this->output( "done\n" );
+		parent::execute();
 	}
 }
 
