@@ -42,6 +42,11 @@ class MigrateConverterRules extends PageMaintenance {
 			return;
 		}
 
+		if ( $rev->getContentModel() != CONTENT_MODEL_WIKITEXT ) {
+			$this->output( "non-wikitext.\n" );
+			return;
+		}
+
 		$wikitext = $rev->getText();
 		$expanded = RemoteUtils::preprocessRevision( $rev );
 		if ( $wikitext === '' || is_null( $expanded ) ) {
