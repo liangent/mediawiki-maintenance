@@ -4,6 +4,10 @@ require_once( dirname( __FILE__ ) . '/MigrateConverterRules.php' );
 
 class MigrateConverterRulesZh_mo extends MigrateConverterRules {
 
+	public function getEditSummary() {
+		return wfMessage( 'ts-migrate-converter-rules-zh-mo' )->text();
+	}
+
 	public function isCacheable() {
 		return true;
 	}
