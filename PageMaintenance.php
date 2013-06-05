@@ -12,6 +12,8 @@ class PageMaintenance extends Maintenance {
 		$this->addOption( 'category', 'Work on pages in a category.' );
 		$this->addOption( 'random', 'Specify a point to start random processing.' );
 		$this->addOption( 'random-count', 'The maximum number of pages for random processing.' );
+		$this->addOption( 'start', 'Specify a page ID to start processing.' );
+		$this->setBatchSize( 50 );
 	}
 
 	public function getPageSource() {
@@ -20,6 +22,21 @@ class PageMaintenance extends Maintenance {
 
 	public function getRandomQueryInfo() {
 		return array();
+	}
+
+	public function getStartQueryInfo() {
+		return $this->getRandomQueryInfo();
+	}
+
+	public function prepareQueryInfo( $info ) {
+		$tables = isset( $info['tables'] ) ? $info['tables'] : array();
+		$fields = isset( $info['fields'] ) ? $info['fields'] : array();
+		$conds = isset( $info['conds'] ) ? $info['conds'] : array();
+		$options = isset( $info['options'] ) ? $info['options'] : array();
+		$join_conds = isset( $info['join_conds'] ) ? $info['join_conds'] : array();
+		$tables = array_unique( array_merge( $tables, array( 'page' ) ) );
+		$fields = array_unique( array_merge( $fields, array( 'page.*' ) ) );
+		return array( $tables, $fields, $conds, $options, $join_conds );
 	}
 
 	public function getDatabase() {
@@ -32,6 +49,7 @@ class PageMaintenance extends Maintenance {
 	public function execute() {
 		$titles = null;
 		$source = null;
+		$continue = null;
 		if ( $this->hasOption( 'page' ) ) {
 			$title = Title::newFromText( $this->getOption( 'page' ) );
 			if ( $title ) {
@@ -58,13 +76,7 @@ class PageMaintenance extends Maintenance {
 					$rand = wfRandom();
 				}
 				$info = $this->getRandomQueryInfo();
-				$tables = isset( $info['tables'] ) ? $info['tables'] : array();
-				$fields = isset( $info['fields'] ) ? $info['fields'] : array();
-				$conds = isset( $info['conds'] ) ? $info['conds'] : array();
-				$options = isset( $info['options'] ) ? $info['options'] : array();
-				$join_conds = isset( $info['join_conds'] ) ? $info['join_conds'] : array();
-				$tables = array_unique( array_merge( $tables, array( 'page' ) ) );
-				$fields = array_unique( array_merge( $fields, array( 'page.*' ) ) );
+				list( $tables, $fields, $conds, $options, $join_conds ) = $this->prepareQueryInfo( $info );
 				$conds[] = 'page_random > ' . $rand;
 				$options['LIMIT'] = $count;
 				$options['ORDER BY'] = 'page_random';
@@ -74,14 +86,41 @@ class PageMaintenance extends Maintenance {
 				$this->output( "Working on < $count random pages starting from $rand.\n" );
 			}
 		}
+		if ( is_null( $titles ) && $this->hasOption( 'start' ) ) {
+			$db = $this->getDatabase();
+			$start = intval( $this->getOption( 'start' ) );
+			$info = $this->getStartQueryInfo();
+			list( $tables, $fields, $conds, $options, $join_conds ) = $this->prepareQueryInfo( $info );
+			$conds[-1] = 'page_id > ' . $start;
+			$options['LIMIT'] = $this->mBatchSize;
+			$options['ORDER BY'] = 'page_id';
+			$res = $db->select( $tables, $fields, $conds, __METHOD__, $options, $join_conds );
+			$titles = TitleArray::newFromResult( $res );
+			$source = 'start';
+			$continue = function( $title ) use ( $db, $tables, $fields, $conds, $options, $join_conds ) {
+				$conds[-1] = 'page_id > ' . $title->getArticleID();
+				$res = $db->select( $tables, $fields, $conds, __METHOD__, $options, $join_conds );
+				return TitleArray::newFromResult( $res );
+			};
+			$this->output( "Working on pages starting from page ID > $start.\n" );
+		}
 		if ( is_null( $titles ) ) {
 			$this->output( "Please specify one of page, category or random-count.\n" );
 			return;
 		}
 		$this->pageSource = $source;
-		foreach ( $titles as $title ) {
-			$this->output( "[[{$title->getPrefixedText()}]]\n" );
-			$this->executeTitle( $title );
+		while ( true ) {
+			$prevTitle = null;
+			foreach ( $titles as $title ) {
+				$this->output( "[[{$title->getPrefixedText()}]]\n" );
+				$this->executeTitle( $title );
+				$prevTitle = $title;
+			}
+			if ( $continue && $prevTitle ) {
+				$titles = $continue( $prevTitle );
+			} else {
+				break;
+			}
 		}
 		$this->output( "done\n" );
 	}

@@ -143,7 +143,7 @@ class CleanupILH extends PageMaintenance {
 		static $cleanedup = array();
 		static $parserOutput = null;
 
-		if ( $this->getPageSource() == 'random' ) {
+		if ( $this->getPageSource() == 'random' || $this->getPageSource() == 'start' ) {
 			$recur = false;
 		}
 
