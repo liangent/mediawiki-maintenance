@@ -12,17 +12,46 @@ class CollectTemplateUsage extends PageMaintenance {
 		$this->args = array();
 	}
 
-	public function getNodeInnerString( $node ) {
-		$children = $node->getChildren();
-		if ( $children ) {
-			$length = $children->getLength();
-			$pieces = array();
-			for ( $i = 0; $i < $length; $i++ ) {
-				$pieces[] = $children->item( $i )->__toString();
+	public function nodeBracketedImplode( $start, $sep, $end, $delimName, $ext, $arrayNode ) {
+		$length = $arrayNode->getLength();
+		$pieces = array( $start );
+		$seen = false;
+		for ( $i = 0; $i < $length; $i++ ) {
+			$item = $arrayNode->item( $i );
+			switch ( $item->getName() ) {
+			case $delimName:
+				$pieces[] = $sep;
+				$seen = true;
+				# No break
+			default:
+				$pieces[] = $this->nodeToWikitext( $item );
+				break;
 			}
-			return implode( '', $pieces );
-		} else {
-			return $node->__toString();
+		}
+		if ( !$seen ) {
+			$pieces[] = $ext;
+		}
+		$pieces[] = $end;
+		return implode( '', $pieces );
+
+	}
+
+	public function nodeToWikitext( $node ) {
+		$children = $node->getChildren();
+		if ( $children ) { # Tree node
+			switch ( $node->getName() ) {
+			case 'template':
+				return $this->nodeBracketedImplode( '{{', '|', '}}', 'part', '', $children );
+			case 'tplarg':
+				return $this->nodeBracketedImplode( '{{{', '|', '}}}', 'part', '', $children );
+			case 'ext':
+				return $this->nodeBracketedImplode( '<', '>', '', 'inner', '/>', $children );
+			default:
+				# h, comment, ignore, or anything as a child of template/tplarg/ext for plain text
+				return $this->nodeBracketedImplode( '', '', '', '', '', $children );
+			}
+		} else { # Leaf node. We don't accept array nodes
+			return $node->node->nodeValue;
 		}
 	}
 
@@ -46,7 +75,7 @@ class CollectTemplateUsage extends PageMaintenance {
 				$breakFor = false;
 				switch ( $templateArg->getName() ) {
 				case 'title':
-					$templateName = trim( $this->getNodeInnerString( $templateArg ) );
+					$templateName = trim( $this->nodeToWikitext( $templateArg ) );
 					$templateTitle = Title::newFromText( $templateName, NS_TEMPLATE );
 
 					if ( !$templateTitle || !$templateTitle->equals( $this->template ) ) {
@@ -63,9 +92,9 @@ class CollectTemplateUsage extends PageMaintenance {
 					break;
 				case 'part':
 					$partVal = $templateArg->splitArg();
-					$argValue = $this->getNodeInnerString( $partVal['value'] );
+					$argValue = $this->nodeToWikitext( $partVal['value'] );
 					if ( $partVal['index'] === '' ) {
-						$argName = trim( $this->getNodeInnerString( $partVal['name'] ) );
+						$argName = trim( $this->nodeToWikitext( $partVal['name'] ) );
 						$argValue = trim( $argValue );
 					} else {
 						$argName = "\{\{\{{$partVal['index']}\}\}\}";
