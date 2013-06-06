@@ -46,6 +46,9 @@ class PageMaintenance extends Maintenance {
 	public function executeTitle( $title ) {
 	}
 
+	public function finalize() {
+	}
+
 	public function execute() {
 		$titles = null;
 		$source = null;
@@ -123,5 +126,6 @@ class PageMaintenance extends Maintenance {
 			}
 		}
 		$this->output( "done\n" );
+		$this->finalize();
 	}
 }
