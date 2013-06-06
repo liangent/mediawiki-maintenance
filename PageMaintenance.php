@@ -13,6 +13,8 @@ class PageMaintenance extends Maintenance {
 		$this->addOption( 'random', 'Specify a point to start random processing.' );
 		$this->addOption( 'random-count', 'The maximum number of pages for random processing.' );
 		$this->addOption( 'start', 'Specify a page ID to start processing.' );
+		$this->addOption( 'links', 'Process pages having links to some target. "template" only currently.' );
+		$this->addOption( 'links-page', 'Link target for --links= parameter.' );
 		$this->setBatchSize( 50 );
 	}
 
@@ -25,6 +27,10 @@ class PageMaintenance extends Maintenance {
 	}
 
 	public function getStartQueryInfo() {
+		return $this->getRandomQueryInfo();
+	}
+
+	public function getLinksQueryInfo( $linkType ) {
 		return $this->getRandomQueryInfo();
 	}
 
@@ -106,6 +112,47 @@ class PageMaintenance extends Maintenance {
 				return TitleArray::newFromResult( $res );
 			};
 			$this->output( "Working on pages starting from page ID > $start.\n" );
+		}
+		if ( is_null( $titles ) && $this->hasOption( 'links' ) ) {
+			$linkType = $this->getOption( 'links' );
+			$linkInfo = array(
+				# TODO: Merge --category= into --links=.
+				'template' => array(
+					'table' => 'templatelinks',
+					'from' => 'tl_from',
+					'namespace' => 'tl_namespace',
+					'title' => 'tl_title',
+					'default' => NS_TEMPLATE,
+				),
+			);
+			if ( isset( $linkInfo[$linkType] ) ) {
+				$linkInfo = $linkInfo[$linkType];
+			} else {
+				$this->output( "Unsupported link type: $linkType.\n" );
+				return;
+			}
+			$target = Title::newFromText( $this->getOption( 'links-page' ), $linkInfo['default'] );
+			if ( !$target ) {
+				$target = Title::newMainPage();
+			}
+			$db = $this->getDatabase();
+			$info = $this->getLinksQueryInfo( $linkType );
+			list( $tables, $fields, $conds, $options, $join_conds ) = $this->prepareQueryInfo( $info );
+			$tables[] = $linkInfo['table'];
+			$conds[] = 'page_id = ' . $linkInfo['from'];
+			$conds[$linkInfo['namespace']] = $target->getNamespace();
+			$conds[$linkInfo['title']] = $target->getDBKey();
+			$options['LIMIT'] = $this->mBatchSize;
+			$options['ORDER BY'] = 'page_id';
+			$res = $db->select( $tables, $fields, $conds, __METHOD__, $options, $join_conds );
+			$titles = TitleArray::newFromResult( $res );
+			$source = 'links';
+			$continue = function( $title ) use ( $db, $tables, $fields, $conds, $options, $join_conds ) {
+				$conds[-1] = 'page_id > ' . $title->getArticleID();
+				$res = $db->select( $tables, $fields, $conds, __METHOD__, $options, $join_conds );
+				return TitleArray::newFromResult( $res );
+			};
+			$this->output( "Working on pages having $linkType links to [[{$target->getPrefixedText()}]].\n" );
 		}
 		if ( is_null( $titles ) ) {
 			$this->output( "Please specify one of page, category or random-count.\n" );
