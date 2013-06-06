@@ -123,6 +123,8 @@ class CollectTemplateUsage extends PageMaintenance {
 			$this->template = $target;
 		}
 
+		$this->output( "Collecting template usage of [[{$this->template->getPrefixedText()}]].\n" );
+
 		parent::execute();
 	}
 }
