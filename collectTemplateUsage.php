@@ -8,6 +8,7 @@ class CollectTemplateUsage extends PageMaintenance {
 		parent::__construct();
 		$this->addOption( 'template', 'Template name to collect.', true, true );
 		$this->addOption( 'empty', 'Placeholder for non-existence argument name.', false, true );
+		$this->addOption( 'output', 'File path/name for output file (CSV).', false, true );
 		$this->usage = array();
 		$this->args = array();
 	}
@@ -119,7 +120,10 @@ class CollectTemplateUsage extends PageMaintenance {
 
 	public function finalize() {
 		$args = array_keys( $this->args );
-		$fp = fopen( 'php://stdout', 'w' );
+		$fp = fopen( $this->getOption( 'output', 'php://stdout' ), 'w' );
+		if ( !$fp ) {
+			$fp = fopen( 'php://stdout', 'w' );
+		}
 		fputcsv( $fp, array_merge( array( '{{page}}', '{{template}}' ), $args ) );
 		foreach ( $this->usage as $titleText => $titleUsages ) {
 			foreach ( $titleUsages as $usageId => $usageInfo ) {
