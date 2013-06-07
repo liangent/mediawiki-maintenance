@@ -113,12 +113,19 @@ class CollectTemplateUsage extends PageMaintenance {
 					'title' => $templateName,
 					'parts' => $templateArgs,
 				);
-				$this->args += $templateArgs;
+				foreach ( $templateArgs as $argKey => $_ ) {
+					if ( isset( $this->args[$argKey] ) ) {
+						$this->args[$argKey]++;
+					} else {
+						$this->args[$argKey] = 1;
+					}
+				}
 			}
 		}
 	}
 
 	public function finalize() {
+		arsort( $this->args );
 		$args = array_keys( $this->args );
 		$fp = fopen( $this->getOption( 'output', 'php://stdout' ), 'w' );
 		if ( !$fp ) {
