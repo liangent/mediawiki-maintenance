@@ -97,7 +97,7 @@ class CollectTemplateUsage extends PageMaintenance {
 						$argName = trim( $this->nodeToWikitext( $partVal['name'] ) );
 						$argValue = trim( $argValue );
 					} else {
-						$argName = "\{\{\{{$partVal['index']}\}\}\}";
+						$argName = "{{{{$partVal['index']}}}}";
 					}
 					$templateArgs[$argName] = $argValue;
 					break;
@@ -142,7 +142,7 @@ class CollectTemplateUsage extends PageMaintenance {
 		$this->template = Title::newFromText( $this->getOption( 'template' ), NS_TEMPLATE );
 
 		if ( !$this->template ) {
-			$this->output( "Invalid template name \{\{{$this->getOption( 'template' )}\}\}.\n" );
+			$this->output( "Invalid template name {{{$this->getOption( 'template' )}}}.\n" );
 			return;
 		}
 
