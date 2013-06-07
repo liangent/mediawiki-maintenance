@@ -37,8 +37,14 @@ class MigrateConverterRules extends PageMaintenance {
 	public function executeTitle( $title ) {
 		global $wgContLang;
 
+		if ( $title->isRedirect() ) {
+			$this->output( "redirect.\n" );
+			return;
+		}
+
 		$rev = Revision::newFromTitle( $title );
 		if ( !$rev ) {
+			$this->output( "no-rev.\n" );
 			return;
 		}
 
