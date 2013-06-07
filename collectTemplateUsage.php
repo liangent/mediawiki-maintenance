@@ -98,7 +98,7 @@ class CollectTemplateUsage extends PageMaintenance {
 						$argName = trim( $this->nodeToWikitext( $partVal['name'] ) );
 						$argValue = trim( $argValue );
 					} else {
-						$argName = "{{{{$partVal['index']}}}}";
+						$argName = $partVal['index'];
 					}
 					$templateArgs[$argName] = $argValue;
 					break;
