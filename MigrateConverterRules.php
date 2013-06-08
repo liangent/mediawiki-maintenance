@@ -74,7 +74,7 @@ class MigrateConverterRules extends PageMaintenance {
 			$ruleObj->parseFlags();
 			$ruleObj->parseRules();
 			$rules = $ruleObj->getRules();
-			if ( isset( $migrations[$rules] ) ) {
+			if ( $rules === '' || isset( $migrations[$rules] ) ) {
 				continue;
 			}
 			$this->migrateRule( $ruleObj, $title );
