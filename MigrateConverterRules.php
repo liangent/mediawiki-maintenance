@@ -80,9 +80,6 @@ class MigrateConverterRules extends PageMaintenance {
 			$this->migrateRule( $ruleObj, $title );
 			$this->rebuildRule( $ruleObj );
 			$newRules = $ruleObj->getRules();
-			if ( $rules === $newRules ) {
-				continue;
-			}
 			$migrations[$rules] = $newRules;
 			if ( $this->isCacheable() ) {
 				$this->migrationCache[$text] = array( $rules, $newRules );
