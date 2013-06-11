@@ -105,7 +105,7 @@ class CleanupILH extends PageMaintenance {
 		$newTitle = Title::newFromText( $ll_title );
 		$wgContLang->findVariantLink( $ll_title, $newTitle, true );
 		if ( $newTitle && ( $newTitle->isKnown()
-			|| $this->titleKnown[$newTitle->getPrefixedDBKey()] )
+			|| isset( $this->titleKnown[$newTitle->getPrefixedDBKey()] ) )
 		) {
 			# Hooray we managed to find an alias!
 			$redirected = false;
