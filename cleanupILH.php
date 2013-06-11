@@ -108,6 +108,7 @@ class CleanupILH extends PageMaintenance {
 			|| $this->titleKnown[$newTitle->getPrefixedDBKey()] )
 		) {
 			# Hooray we managed to find an alias!
+			$redirected = false;
 			if ( $title ) {
 				$this->output( " (rd [[{$title->getPrefixedText()}]] "
 					. "=> [[{$newTitle->getPrefixedText()}]]" );
@@ -124,10 +125,12 @@ class CleanupILH extends PageMaintenance {
 				)->isOK() ) {
 					$this->output( ' done)' );
 					$this->titleKnown[$title->getPrefixedDBKey()] = true;
+					$redirected = true;
 				} else {
 					$this->output( ' ERROR)' );
 				}
-			} else {
+			}
+		       	if ( !$redirected ) {
 				$title = $newTitle;
 				$this->output( " (alias [[$local]] => [[{$title->getPrefixedText()}]])" );
 			}
