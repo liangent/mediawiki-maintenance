@@ -103,7 +103,7 @@ class MigrateConverterRules extends PageMaintenance {
 				$this->output( "no change.\n" );
 			}
 		} else {
-			$this->output( "up-to-date.\n" );
+			$this->output( "no rule.\n" );
 		}
 	}
 }
