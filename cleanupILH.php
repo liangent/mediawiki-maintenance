@@ -52,7 +52,9 @@ class CleanupILH extends PageMaintenance {
 			return false;
 		}
 
-		$ftitle = Title::makeTitle( NS_MAIN, $interwiki );
+		// Ideally we may want to parse $interwiki on the specified site, for
+		// correct namespaces and $wgCapitalLinks, but it's a little too expensive.
+		$ftitle = Title::makeTitleSafe( NS_MAIN, $interwiki );
 		if ( !$ftitle ) {
 			return false;
 		}
