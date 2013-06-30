@@ -113,14 +113,14 @@ class CleanupILH extends PageMaintenance {
 			$redirected = false;
 			if ( $title ) {
 				$this->output( " (rd [[{$title->getPrefixedText()}]] "
-					. "=> [[{$newTitle->getPrefixedText()}]]" );
+					. "=> [[{$newTitle->getFullText()}]]" );
 				# Create redirect
 				$contentHandler = ContentHandler::getForTitle( $title );
 				$redirectContent = $contentHandler->makeRedirectContent( $newTitle );
 				if ( WikiPage::factory( $title )->doEdit(
 					$redirectContent->serialize(),
 					wfMessage( 'ts-cleanup-ilh-redirect' )->params(
-						$newTitle->getPrefixedText(),
+						$newTitle->getFullText(),
 						$pageTitle->getPrefixedText(),
 						$lang, $interwiki, $pageTitle->getLatestRevID()
 					)->text(), EDIT_NEW
@@ -134,7 +134,7 @@ class CleanupILH extends PageMaintenance {
 			}
 		       	if ( !$redirected ) {
 				$title = $newTitle;
-				$this->output( " (alias [[$local]] => [[{$title->getPrefixedText()}]])" );
+				$this->output( " (alias [[$local]] => [[{$title->getFullText()}]])" );
 			}
 			return true;
 		}
@@ -224,13 +224,13 @@ class CleanupILH extends PageMaintenance {
 				if ( is_string( $descs[$i] ) && trim( $descs[$i] ) !== '' ) {
 					$nt = Title::newFromText( $descs[$i] );
 					$wgContLang->findVariantLink( $descs[$i], $nt, true );
-					if ( $nt && $nt->equals( $titles[$i] ) ) {
+					if ( $nt && $nt->getFullText() === $titles[$i]->getFullText() ) {
 						$replace .= $descs[$i];
 					} else {
-						$replace .= $titles[$i]->getPrefixedText() . '|' . $descs[$i];
+						$replace .= $titles[$i]->getFullText() . '|' . $descs[$i];
 					}
 				} else {
-					$replace .= $titles[$i]->getPrefixedText();
+					$replace .= $titles[$i]->getFullText();
 				}
 				$replace .= ']]';
 				$text = str_replace( $templates[$i], $replace, $text );
