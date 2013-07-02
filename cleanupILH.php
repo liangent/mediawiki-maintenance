@@ -223,7 +223,8 @@ class CleanupILH extends PageMaintenance {
 				$replace = '[[' . self::getOptionalColonForWikiLink( $titles[$i], $title );
 				if ( is_string( $descs[$i] ) && trim( $descs[$i] ) !== '' ) {
 					$nt = Title::newFromText( $descs[$i] );
-					$wgContLang->findVariantLink( $descs[$i], $nt, true );
+					$x = $descs[$i];
+					$wgContLang->findVariantLink( $x, $nt, true );
 					if ( $nt && $nt->getFullText() === $titles[$i]->getFullText() ) {
 						$replace .= $descs[$i];
 					} else {
