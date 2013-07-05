@@ -175,7 +175,7 @@ class CleanupILH extends PageMaintenance {
 		$otext = $text = Revision::newFromTitle( $title )->getText();
 		# First, find out all links to check
 		$matches = array();
-		$lang = '(ar|de|en|es|fi|fr|it|ja|ms|nl|no|pl|pt|ru|sv|ko|vi|tr|da)';
+		$lang = '(ar|be|da|de|el|en|es|fi|fr|hy|id|it|ja|ko|ms|nl|no|pl|pt|ro|ru|sv|tr|uk|uz|vi)';
 		$ilhRe = '/\{\{\s*(?:Internal[_ ]link[_ ]helper\/' . $lang
 			. '|Link-' . $lang . '|' . $lang . '-link)\s*'
 			. '(?:\|\s*(.*?)\s*)?' # Local page name
