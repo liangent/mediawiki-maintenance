@@ -13,8 +13,9 @@ class PageMaintenance extends Maintenance {
 		$this->addOption( 'random', 'Specify a point to start random processing.' );
 		$this->addOption( 'random-count', 'The maximum number of pages for random processing.' );
 		$this->addOption( 'start', 'Specify a page ID to start processing.' );
-		$this->addOption( 'links', 'Process pages having links to some target. "template" only currently.' );
+		$this->addOption( 'links', 'Process pages having links to some target. "template" or "page" only currently.' );
 		$this->addOption( 'links-page', 'Link target for --links= parameter.' );
+		$this->addOption( 'links-reverse', 'Use the other direction in --links= parameter.' );
 		$this->setBatchSize( 50 );
 	}
 
@@ -123,6 +124,13 @@ class PageMaintenance extends Maintenance {
 					'namespace' => 'tl_namespace',
 					'title' => 'tl_title',
 					'default' => NS_TEMPLATE,
+				),
+				'page' => array(
+					'table' => 'pagelinks',
+					'from' => 'pl_from',
+					'namespace' => 'pl_namespace',
+					'title' => 'pl_title',
+					'default' => NS_MAIN,
 				),
 			);
 			if ( isset( $linkInfo[$linkType] ) ) {
