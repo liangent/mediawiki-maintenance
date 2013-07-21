@@ -147,9 +147,16 @@ class PageMaintenance extends Maintenance {
 			$info = $this->getLinksQueryInfo( $linkType );
 			list( $tables, $fields, $conds, $options, $join_conds ) = $this->prepareQueryInfo( $info );
 			$tables[] = $linkInfo['table'];
-			$conds[] = 'page_id = ' . $linkInfo['from'];
-			$conds[$linkInfo['namespace']] = $target->getNamespace();
-			$conds[$linkInfo['title']] = $target->getDBKey();
+			$reverse = $this->hasOption( 'links-reverse' );
+			if ( $reverse ) {
+				$conds[] = 'page_namespace = ' . $linkInfo['namespace'];
+				$conds[] = 'page_title = ' . $linkInfo['title'];
+				$conds[$linkInfo['from']] = $target->getArticleID();
+			} else {
+				$conds[] = 'page_id = ' . $linkInfo['from'];
+				$conds[$linkInfo['namespace']] = $target->getNamespace();
+				$conds[$linkInfo['title']] = $target->getDBKey();
+			}
 			$options['LIMIT'] = $this->mBatchSize;
 			$options['ORDER BY'] = 'page_id';
 			$res = $db->select( $tables, $fields, $conds, __METHOD__, $options, $join_conds );
@@ -160,7 +167,8 @@ class PageMaintenance extends Maintenance {
 				$res = $db->select( $tables, $fields, $conds, __METHOD__, $options, $join_conds );
 				return TitleArray::newFromResult( $res );
 			};
-			$this->output( "Working on pages having $linkType links to [[{$target->getPrefixedText()}]].\n" );
+			$prep = $reverse ? 'from' : 'to';
+			$this->output( "Working on pages having $linkType links $prep [[{$target->getPrefixedText()}]].\n" );
 		}
 		if ( is_null( $titles ) ) {
 			$this->output( "Please specify one of page, category or random-count.\n" );
