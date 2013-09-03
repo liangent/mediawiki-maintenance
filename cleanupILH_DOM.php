@@ -15,14 +15,6 @@ class CleanupILH_DOM extends PageDomMaintenance {
 		$this->titleKnown = array();
 	}
 
-	static function fallbackArray( &$a, $b ) {
-		for ( $i = 0; $i < count( $a ); $i++ ) {
-			if ( !is_string( $a[$i] ) || trim( $a[$i] ) === '' ) {
-				$a[$i] = $b[$i];
-			}
-		}
-	}
-
 	static function getOptionalColonForWikiLink( $title, $onTitle ) {
 		if ( in_array( $title->getNamespace(), array( NS_CATEGORY, NS_FILE ) ) ) {
 			return ':';
@@ -224,6 +216,7 @@ class CleanupILH_DOM extends PageDomMaintenance {
 		$interwiki = ''; # Interwiki title
 		$local = ''; # Local page name
 		$desc = ''; # Display text
+		$noop = function( $x ) { return $x; };
 
 		for ( $i = 0; $i < $arrayNode->getLength(); $i++ ) {
 			$childNode = $arrayNode->item( $i );
@@ -257,13 +250,14 @@ class CleanupILH_DOM extends PageDomMaintenance {
 				break;
 			case 'part':
 				$arg = $childNode->splitArg();
+				$func = 'trim';
 				switch ( $template . '!' . $arg['index'] . '!' . trim( $this->nodeToWikitext( $arg['name'] ) ) ) {
 				case 'zhwiki-tsl!1!':
 				case 'arwiki!3!':
 				case 'zhwiki-tsl!!1':
 				case 'arwiki!!3':
 				case 'arwiki!!لغ':
-					$maybeLang = strtolower( trim( $this->nodeToWikitext( $arg['value'] ) ) );
+					$maybeLang = strtolower( $func( $this->nodeToWikitext( $arg['value'] ) ) );
 					if ( Language::isKnownLanguageTag( $maybeLang ) ) {
 						$lang = $maybeLang;
 					}
@@ -271,29 +265,32 @@ class CleanupILH_DOM extends PageDomMaintenance {
 				case 'zhwiki-ilh!1!':
 				case 'zhwiki-tsl!3!':
 				case 'arwiki!1!':
+					$func = $noop;
 				case 'zhwiki-ilh!!1':
 				case 'zhwiki-tsl!!3':
 				case 'arwiki!!1':
 				case 'arwiki!!عر':
-					$local = trim( $this->nodeToWikitext( $arg['value'] ) );
+					$local = $func( $this->nodeToWikitext( $arg['value'] ) );
 					break;
 				case 'zhwiki-ilh!2!':
 				case 'zhwiki-tsl!2!':
 				case 'arwiki!2!':
+					$func = $noop;
 				case 'zhwiki-ilh!!2':
 				case 'zhwiki-tsl!!2':
 				case 'arwiki!!2':
 				case 'arwiki!!تر':
-					$interwiki = trim( $this->nodeToWikitext( $arg['value'] ) );
+					$interwiki = $func( $this->nodeToWikitext( $arg['value'] ) );
 					break;
 				case 'zhwiki-ilh!3!':
 				case 'zhwiki-tsl!4!':
 				case 'arwiki!4!':
+					$func = $noop;
 				case 'zhwiki-ilh!!3':
 				case 'zhwiki-tsl!!4':
 				case 'arwiki!!4':
 				case 'arwiki!!نص':
-					$desc = trim( $this->nodeToWikitext( $arg['value'] ) );
+					$desc = $func( $this->nodeToWikitext( $arg['value'] ) );
 					break;
 				}
 				break;
@@ -305,31 +302,31 @@ class CleanupILH_DOM extends PageDomMaintenance {
 		}
 
 		if ( $template === 'zhwiki-ilh' ) {
-			if ( $interwiki === '' ) {
+			if ( trim( $interwiki ) === '' ) {
 				$interwiki = $local;
 			}
 		}
 
 		if ( $template === 'zhwiki-tsl' ) {
-			if ( $local === '' ) {
+			if ( trim( $local ) === '' ) {
 				$local = $interwiki;
 			}
 		}
 
 		if ( $template === 'arwiki' ) {
-			if ( $lang === '' ) {
+			if ( trim( $lang ) === '' ) {
 				$lang = 'en';
 			}
 		}
 
-		if ( $desc === '' ) {
+		if ( trim( $desc ) === '' ) {
 			$desc = $local;
 		}
 
 		$title = Title::newFromText( $local );
 		$wgContLang->findVariantLink( $local, $title, true );
 		$localKnown = $title && ( $title->isKnown() || isset( $this->titleKnown[$title->getPrefixedDBKey()] ) );
-		if ( !$localKnown && $lang !== '' && $interwiki !== '' ) {
+		if ( !$localKnown && trim( $lang ) !== '' && trim( $interwiki ) !== '' ) {
 			$localKnown = $this->findAlias( $this->title, $title, $lang, $interwiki, $local );
 		}
 		if ( $localKnown ) {
