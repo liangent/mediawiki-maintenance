@@ -257,9 +257,11 @@ class CleanupILH_DOM extends PageDomMaintenance {
 				break;
 			case 'part':
 				$arg = $childNode->splitArg();
-				switch ( $template . '!' . $arg['index'] . '!' . $this->nodeToWikitext( $arg['name'] ) ) {
+				switch ( $template . '!' . $arg['index'] . '!' . trim( $this->nodeToWikitext( $arg['name'] ) ) ) {
 				case 'zhwiki-tsl!1!':
 				case 'arwiki!3!':
+				case 'zhwiki-tsl!!1':
+				case 'arwiki!!3':
 				case 'arwiki!!لغ':
 					$maybeLang = strtolower( trim( $this->nodeToWikitext( $arg['value'] ) ) );
 					if ( Language::isKnownLanguageTag( $maybeLang ) ) {
@@ -269,18 +271,27 @@ class CleanupILH_DOM extends PageDomMaintenance {
 				case 'zhwiki-ilh!1!':
 				case 'zhwiki-tsl!3!':
 				case 'arwiki!1!':
+				case 'zhwiki-ilh!!1':
+				case 'zhwiki-tsl!!3':
+				case 'arwiki!!1':
 				case 'arwiki!!عر':
 					$local = trim( $this->nodeToWikitext( $arg['value'] ) );
 					break;
 				case 'zhwiki-ilh!2!':
 				case 'zhwiki-tsl!2!':
 				case 'arwiki!2!':
+				case 'zhwiki-ilh!!2':
+				case 'zhwiki-tsl!!2':
+				case 'arwiki!!2':
 				case 'arwiki!!تر':
 					$interwiki = trim( $this->nodeToWikitext( $arg['value'] ) );
 					break;
 				case 'zhwiki-ilh!3!':
 				case 'zhwiki-tsl!4!':
 				case 'arwiki!4!':
+				case 'zhwiki-ilh!!3':
+				case 'zhwiki-tsl!!4':
+				case 'arwiki!!4':
 				case 'arwiki!!نص':
 					$desc = trim( $this->nodeToWikitext( $arg['value'] ) );
 					break;
