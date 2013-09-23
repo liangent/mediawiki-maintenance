@@ -27,7 +27,7 @@ class CleanupILH_DOM extends PageDomMaintenance {
 	}
 
 	private function findAlias( $pageTitle, &$title, $lang, $interwiki, $local ) {
-		global $wgContLang, $wgConf, $wgDBname, $wgLocalInterwiki;
+		global $wgContLang, $wgConf, $wgDBname, $wgLocalInterwiki, $IP;
 
 		if ( is_null( self::$suffix ) ) {
 			list( $site, $_ ) = $wgConf->siteFromDB( $wgDBname );
@@ -44,11 +44,13 @@ class CleanupILH_DOM extends PageDomMaintenance {
 			return false;
 		}
 
-		# Ideally we may want to parse $interwiki on the specified site, for
-		# correct namespaces and $wgCapitalLinks, but it's a little too expensive.
-		$ftitle = Title::newFromText( $interwiki );
-		if ( !$ftitle ) {
-			return false;
+		# $fdbn is already validated with wfGetDB().
+		$cmd = wfShellWikiCmd( "$IP/maintenance/parseTitle.php", array( '--wiki', $fdbn, $interwiki ) );
+		$retVal = 1;
+		$data = FormatJson::decode( trim( wfShellExec( $cmd, $retVal, array(), array( 'memory' => 0 ) ) ) );
+		if ( $retVal != 0 || !isset( $data->namespace ) || !isset( $data->dbkey )
+			|| !isset( $data->interwiki ) || $data->interwiki !== '' ) {
+				return false;
 		}
 
 		try {
@@ -56,8 +58,8 @@ class CleanupILH_DOM extends PageDomMaintenance {
 				array( 'page', 'langlinks' ),
 				'll_title',
 				array(
-					'page_namespace' => $ftitle->getNamespace(),
-					'page_title' => $ftitle->getDBKey(),
+					'page_namespace' => $data->namespace,
+					'page_title' => $data->dbkey,
 					'page_id = ll_from',
 					'll_lang' => $wgLocalInterwiki,
 				),
@@ -71,8 +73,8 @@ class CleanupILH_DOM extends PageDomMaintenance {
 					),
 					'll_title',
 					array(
-						'rdpage.page_namespace' => $ftitle->getNamespace(),
-						'rdpage.page_title' => $ftitle->getDBKey(),
+						'rdpage.page_namespace' => $data->namespace,
+						'rdpage.page_title' => $data->dbkey,
 						'rdpage.page_is_redirect' => true,
 						'rdpage.page_id = rd_from',
 						'dstpage.page_namespace = rd_namespace',
