@@ -226,7 +226,7 @@ class CleanupILH_DOM extends PageDomMaintenance {
 	}
 
 	public function executeTemplate( $node, $arrayNode ) {
-		global $wgDBname, $wgContLang;
+		global $wgDBname, $wgContLang, $IP, $wmgUseWikibaseClient;
 
 		$template = ''; # Currently: zhwiki-ilh, zhwiki-tsl, arwiki
 		$lang = ''; # Interwiki language code
@@ -351,6 +351,28 @@ class CleanupILH_DOM extends PageDomMaintenance {
 			$localKnown = $this->findAlias( $this->title, $title, $lang, $interwiki, $local );
 		}
 		if ( $localKnown ) {
+			$foreignDb = $this->langToDB( $lang );
+			if ( trim( $interwiki ) !== '' && $title->getInterwiki() === '' &&
+				$foreignDb !== false && $wmgUseWikibaseClient
+			) {
+				$cmd = wfShellWikiCmd( "$IP/maintenance/wbLinkTitles.php", array(
+					'--bot', '--wiki', Wikibase\Settings::get( 'repoDatabase' ),
+					$wgDBname, $title->getFullText(), $foreignDb, $interwiki
+				) );
+				$retVal = 1;
+				$this->output( " (wb [[{$title->getFullText()}]] <=> $foreignDb: [[$interwiki]] ..." );
+				$data = FormatJson::decode( trim( wfShellExec( $cmd, $retVal, array(), array( 'memory' => 0 ) ) ) );
+				if ( $data ) {
+					$data = $data->{$foreignDb};
+				} else {
+					$data = '?';
+				}
+				if ( $data ) {
+					$this->output( " ERROR: $data)" );
+				} else {
+					$this->output( ' ok)' );
+				}
+			}
 			$replace = '[[' . self::getOptionalColonForWikiLink( $title, $this->title );
 			$nt = Title::newFromText( $desc );
 			$x = $desc;
