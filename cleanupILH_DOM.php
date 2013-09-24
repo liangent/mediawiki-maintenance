@@ -26,14 +26,29 @@ class CleanupILH_DOM extends PageDomMaintenance {
 		return '';
 	}
 
-	private function findAlias( $pageTitle, &$title, $lang, $interwiki, $local ) {
-		global $wgContLang, $wgConf, $wgDBname, $wgLocalInterwiki, $IP;
+	private function langToDB( $lang ) {
+		global $wgConf, $wgDBname, $wgLocalDatabases;
 
 		if ( is_null( self::$suffix ) ) {
 			list( $site, $_ ) = $wgConf->siteFromDB( $wgDBname );
 			self::$suffix = $site == 'wikipedia' ? 'wiki' : $site;
 		}
-		$fdbn = str_replace( '-', '_', $lang ) . self::$suffix;
+		$maybeDb = str_replace( '-', '_', $lang ) . self::$suffix;
+
+		if ( in_array( $maybeDb, $wgLocalDatabases ) ) {
+			return $maybeDb;
+		} else {
+			return false;
+		}
+	}
+
+	private function findAlias( $pageTitle, &$title, $lang, $interwiki, $local ) {
+		global $wgContLang, $wgLocalInterwiki, $IP;
+
+		$fdbn = $this->langToDB( $lang );
+		if ( $fdbn === false ) {
+			return false;
+		}
 		try {
 			$fdbr = wfGetDB( DB_SLAVE, array(), $fdbn );
 		} catch ( DBError $e ) {
