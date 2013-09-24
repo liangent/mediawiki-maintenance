@@ -244,7 +244,11 @@ class CleanupILH_DOM extends PageDomMaintenance {
 				if ( !$templateTitle ) {
 					continue;
 				}
-				$templatePage = WikiPage::factory( $templateTitle );
+				try {
+					$templatePage = WikiPage::factory( $templateTitle );
+				} catch ( MWException $e ) {
+					$templatePage = null;
+				}
 				if ( $templatePage ) {
 					$redirectTitle = $templatePage->getRedirectTarget();
 					if ( $redirectTitle ) {
