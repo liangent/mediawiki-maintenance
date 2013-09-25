@@ -355,22 +355,21 @@ class CleanupILH_DOM extends PageDomMaintenance {
 			if ( trim( $interwiki ) !== '' && $title->getInterwiki() === '' &&
 				$foreignDb !== false && $wmgUseWikibaseClient
 			) {
-				$cmd = wfShellWikiCmd( "$IP/maintenance/wbLinkTitles.php", array(
+				$cmd = wfShellWikiCmd( "$IP/maintenance/wbLinkTitlesLocal.php", array(
 					'--bot', '--wiki', Wikibase\Settings::get( 'repoDatabase' ),
+					'--report', wfMessage( 'ts-cleanupilh-wb-report' )->text(),
+					'--report-message', wfMessage( 'ts-cleanupilh-wb-report-message' )
+						->params( $wgDBname, $title->getFullText(), $this->title->getPrefixedText() )
+						->text(),
 					$wgDBname, $title->getFullText(), $foreignDb, $interwiki
 				) );
 				$retVal = 1;
 				$this->output( " (wb [[{$title->getFullText()}]] <=> $foreignDb: [[$interwiki]] ..." );
-				$data = FormatJson::decode( trim( wfShellExec( $cmd, $retVal, array(), array( 'memory' => 0 ) ) ) );
+				$data = trim( wfShellExec( $cmd, $retVal, array(), array( 'memory' => 0 ) ) );
 				if ( $data ) {
-					$data = $data->{$foreignDb};
+					$this->output( " $data)" );
 				} else {
-					$data = '?';
-				}
-				if ( $data ) {
-					$this->output( " ERROR: $data)" );
-				} else {
-					$this->output( ' ok)' );
+					$this->output( ' ERROR)' );
 				}
 			}
 			$replace = '[[' . self::getOptionalColonForWikiLink( $title, $this->title );
