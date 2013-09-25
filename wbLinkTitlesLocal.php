@@ -46,12 +46,6 @@ class WbLinkTitlesLocal extends Maintenance {
 				$pageName = $normalizedPageName;
 			}
 		}
-		if ( count( $sitePages ) < 2 ) {
-			$result += array_fill_keys( array_keys( $sitePages ), '' );
-			$this->output( FormatJson::encode( $result ) );
-			$this->output( "\n" );
-			return;
-		}
 
 		$result = $this->executeSitePages( $sitePages, $result );
 		$this->output( FormatJson::encode( $result ) );
