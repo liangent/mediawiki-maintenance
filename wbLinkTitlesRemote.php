@@ -2,7 +2,7 @@
 
 require_once( dirname( __FILE__ ) . '/Maintenance.php' );
 
-class WbLinkTitles extends Maintenance {
+class WbLinkTitlesRemote extends Maintenance {
 	public function __construct() {
 		parent::__construct();
 		$this->addOption( 'bot', 'Mark edits as "bot".', false );
@@ -68,5 +68,5 @@ class WbLinkTitles extends Maintenance {
 	}
 }
 
-$maintClass = "WbLinkTitles";
+$maintClass = "WbLinkTitlesRemote";
 require_once( RUN_MAINTENANCE_IF_MAIN );
