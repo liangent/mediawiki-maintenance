@@ -83,16 +83,19 @@ class WbLinkTitlesLocal extends Maintenance {
 		if ( $uniqueItemId === false ) {
 			# All unlinked
 			$itemContent = Wikibase\ItemContent::newEmpty();
+			$itemTouched = false;
 			$baseRevId = false;
 			$linkedPieces = array();
 			foreach ( $sitePages as $siteId => $pageName ) {
 				$siteLink = new Wikibase\DataModel\SimpleSiteLink( $siteId, $pageName );
 				$itemContent->getItem()->addSimpleSiteLink( $siteLink );
+				$itemTouched = true;
 				$linkedPieces[] = wfMessage( 'ts-wblinktitles-summary-item' )->params( $siteId, $pageName )->plain();
 			}
 		} elseif ( $uniqueItemId ) {
 			$entityContentFactory = Wikibase\Repo\WikibaseRepo::getDefaultInstance()->getEntityContentFactory();
 			$itemContent = $entityContentFactory->getFromId( $uniqueItemId );
+			$itemTouched = false;
 			$baseRevId = $itemContent->getWikiPage()->getLatest();
 			$linkedPieces = array();
 			foreach ( $sitePages as $siteId => $pageName ) {
@@ -110,6 +113,7 @@ class WbLinkTitlesLocal extends Maintenance {
 					}
 					$siteLink = new Wikibase\DataModel\SimpleSiteLink( $siteId, $pageName );
 					$itemContent->getItem()->addSimpleSiteLink( $siteLink );
+					$itemTouched = true;
 					$itemIds[$siteId] = $itemContent->getItem()->getId();
 					$linkedPieces[] = wfMessage( 'ts-wblinktitles-summary-item' )->params( $siteId, $pageName )->plain();
 				}
@@ -117,6 +121,7 @@ class WbLinkTitlesLocal extends Maintenance {
 		} else {
 			# Conflict!
 			$itemContent = null;
+			$itemTouched = false;
 			$result += array_fill_keys( array_keys( $sitePages ), '*' );
 			$conflict = true;
 		}
@@ -156,7 +161,7 @@ class WbLinkTitlesLocal extends Maintenance {
 			}
 		}
 
-		if ( $itemContent ) {
+		if ( $itemContent && $itemTouched ) {
 			global $wgContLang;
 			$summary = wfMessage( 'ts-wblinktitles-summary' )->params( $wgContLang->listToText( $linkedPieces ) )->text();
 			$status = $itemContent->save( $summary, null,
