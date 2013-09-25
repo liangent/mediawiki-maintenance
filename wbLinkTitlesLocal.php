@@ -32,9 +32,10 @@ class WbLinkTitlesLocal extends Maintenance {
 
 		$result = array( '*' => '' );
 		$allSites = SiteSQLStore::newInstance();
+		$siteLinkGroups = Wikibase\Settings::get( 'siteLinkGroups' );
 		foreach ( $sitePages as $siteId => &$pageName ) {
 			$site = $allSites->getSite( $siteId );
-			if ( !$site ) {
+			if ( !$site || !in_array( $site->getGroup(), $siteLinkGroups ) ) {
 				$this->error( "Invalid site: $siteId.", 1 );
 			}
 			$normalizedPageName = $site->normalizePageName( $pageName );
