@@ -358,9 +358,10 @@ class CleanupILH_DOM extends PageDomMaintenance {
 				$cmd = wfShellWikiCmd( "$IP/maintenance/wbLinkTitlesLocal.php", array(
 					'--bot', '--wiki', Wikibase\Settings::get( 'repoDatabase' ),
 					'--report', wfMessage( 'ts-cleanupilh-wb-report' )->text(),
-					'--report-message', wfMessage( 'ts-cleanupilh-wb-report-message' )
-						->params( $wgDBname, $title->getFullText(), $this->title->getPrefixedText() )
-						->text(),
+					'--report-message', wfMessage( 'ts-cleanupilh-wb-report-message' )->params(
+						$wgDBname, $title->getFullText(), $this->title->getPrefixedText(),
+						$foreignDb, $interwiki
+					)->text(),
 					$wgDBname, $title->getFullText(), $foreignDb, $interwiki
 				) );
 				$retVal = 1;
