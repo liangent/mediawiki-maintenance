@@ -16,6 +16,7 @@ class WbStringValueAsRedirect extends Maintenance {
 		$this->addOption( 'bot', 'Create redirects with bot flag', false );
 		$this->addOption( 'debug', 'Output extra verbose debug information', false );
 		$this->addOption( 'no-edit', 'Do not edit existing pages', false );
+		$this->addOption( 'no-self', 'Do not create self redirects', false );
 	}
 
 	public function makeRedirect( $site, $redirectPageName, $targetPageName ) {
@@ -25,6 +26,7 @@ class WbStringValueAsRedirect extends Maintenance {
 		$cmd = wfShellWikiCmd( "$IP/maintenance/makeRedirect.php", array_merge(
 			$this->hasOption( 'bot' ) ? array( '--bot' ) : array(),
 			$this->hasOption( 'no-edit' ) ? array( '--no-edit' ) : array(),
+			$this->hasOption( 'no-self' ) ? array( '--no-self' ) : array(),
 			array( '--wiki', $site, $redirectPageName, $targetPageName )
 		) );
 		if ( $this->hasOption( 'dry-run' ) ) {
