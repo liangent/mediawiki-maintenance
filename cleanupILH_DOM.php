@@ -126,8 +126,7 @@ class CleanupILH_DOM extends PageDomMaintenance {
 				# Create redirect
 				$contentHandler = ContentHandler::getForTitle( $title );
 				$redirectContent = $contentHandler->makeRedirectContent( $newTitle );
-				if ( WikiPage::factory( $title )->doEdit(
-					$redirectContent->serialize(),
+				if ( WikiPage::factory( $title )->doEditContent( $redirectContent,
 					wfMessage( 'ts-cleanup-ilh-redirect' )->params(
 						$newTitle->getFullText(),
 						$pageTitle->getPrefixedText(),
