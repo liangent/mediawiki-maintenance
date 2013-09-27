@@ -9,6 +9,7 @@ class MakeRedirect extends Maintenance {
 		$this->addArg( 'to', 'Redirect to', true );
 		$this->addOption( 'bot', 'Mark edits as bot', false );
 		$this->addOption( 'no-edit', 'Do not edit existing pages', false );
+		$this->addOption( 'no-self', 'Do not create self redirects', false );
 	}
 
 	public function execute() {
@@ -16,6 +17,9 @@ class MakeRedirect extends Maintenance {
 		$toTitle = Title::newFromText( $this->getArg( 1 ) );
 		if ( !$fromTitle || !$toTitle ) {
 			die( 1 );
+		}
+		if ( $fromTitle->equals( $toTitle ) && $this->hasOption( 'no-self' ) ) {
+			die( 2 );
 		}
 		try {
 			$fromWikiPage = WikiPage::factory( $fromTitle );
