@@ -33,12 +33,16 @@ class WbStringValueAsRedirect extends Maintenance {
 			$this->output( " (dry-run)\n$cmd\n" );
 		} else {
 			$retVal = 1;
-			wfShellExec( $cmd, $retVal, array(), array( 'memory' => 0 ) );
+			$msg = wfShellExec( $cmd, $retVal, array(), array( 'memory' => 0 ) );
 			if ( $retVal ) {
-				$this->output( " ERROR: $retVal.\n");
+				$this->output( " ERROR: $retVal");
 			} else {
-				$this->output( " ok.\n" );
+				$this->output( " ok" );
 			}
+			if ( $msg ) {
+				$this->output( ': ' . trim( $msg ) );
+			}
+			$this->output( ".\n" );
 		}
 	}
 

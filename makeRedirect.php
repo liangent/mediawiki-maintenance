@@ -16,21 +16,26 @@ class MakeRedirect extends Maintenance {
 		$fromTitle = Title::newFromText( $this->getArg( 0 ) );
 		$toTitle = Title::newFromText( $this->getArg( 1 ) );
 		if ( !$fromTitle || !$toTitle ) {
+			$this->output( "invalid-title\n" );
 			die( 1 );
 		}
 		if ( $fromTitle->equals( $toTitle ) && $this->hasOption( 'no-self' ) ) {
+			$this->output( "no-self\n" );
 			die( 2 );
 		}
 		try {
 			$fromWikiPage = WikiPage::factory( $fromTitle );
 		} catch ( MWException $e ) {
+			$this->output( "invalid-page\n" );
 			die( 1 );
 		}
 		if ( $fromWikiPage->exists() ) {
 			$currentRedir = $fromWikiPage->getRedirectTarget();
 			if ( $currentRedir && $currentRedir->equals( $toTitle ) ) {
+				$this->output( "no-change\n" );
 				return;
 			} elseif ( $this->getOption( 'no-edit' ) ) {
+				$this->output( "no-edit\n" );
 				die( 2 );
 			}
 		}
@@ -39,8 +44,10 @@ class MakeRedirect extends Maintenance {
 		if ( $fromWikiPage->doEditContent( $redirectContent, '',
 			$this->hasOption( 'bot' ) ? EDIT_SUPPRESS_RC : 0
 		)->isOK() ) {
+			$this->output( "success\n" );
 			return;
 		} else {
+			$this->output( "failure\n" );
 			die( 4 );
 		}
 	}
