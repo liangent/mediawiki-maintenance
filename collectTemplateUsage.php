@@ -1,8 +1,8 @@
 <?php
 
-require_once( dirname( __FILE__ ) . '/PageMaintenance.php' );
+require_once( dirname( __FILE__ ) . '/PageDomMaintenance.php' );
 
-class CollectTemplateUsage extends PageMaintenance {
+class CollectTemplateUsage extends PageDomMaintenance {
 
 	public function __construct() {
 		parent::__construct();
@@ -13,54 +13,7 @@ class CollectTemplateUsage extends PageMaintenance {
 		$this->args = array();
 	}
 
-	public function nodeBracketedImplode( $start, $sep, $end, $delimName, $ext, $arrayNode ) {
-		$length = $arrayNode->getLength();
-		$pieces = array( $start );
-		$seen = false;
-		for ( $i = 0; $i < $length; $i++ ) {
-			$item = $arrayNode->item( $i );
-			switch ( $item->getName() ) {
-			case $delimName:
-				$pieces[] = $sep;
-				$seen = true;
-				# No break
-			default:
-				$pieces[] = $this->nodeToWikitext( $item );
-				break;
-			}
-		}
-		if ( !$seen ) {
-			$pieces[] = $ext;
-		}
-		$pieces[] = $end;
-		return implode( '', $pieces );
-
-	}
-
-	public function nodeToWikitext( $node ) {
-		$children = $node->getChildren();
-		if ( $children ) { # Tree node
-			switch ( $node->getName() ) {
-			case 'template':
-				return $this->nodeBracketedImplode( '{{', '|', '}}', 'part', '', $children );
-			case 'tplarg':
-				return $this->nodeBracketedImplode( '{{{', '|', '}}}', 'part', '', $children );
-			case 'ext':
-				return $this->nodeBracketedImplode( '<', '>', '', 'inner', '/>', $children );
-			default:
-				# h, comment, ignore, or anything as a child of template/tplarg/ext for plain text
-				return $this->nodeBracketedImplode( '', '', '', '', '', $children );
-			}
-		} else { # Leaf node. We don't accept array nodes
-			return $node->node->nodeValue;
-		}
-	}
-
-	public function executeTitle( $title ) {
-		$dom = RemoteUtils::preprocessTitleToDom( $title );
-		if ( !$dom ) {
-			return;
-		}
+	public function executeTitleDom( $title, $dom, $data = null ) {
 
 		$templateNodes = new PPNode_DOM( $dom->getXPath()->query( '//template', $dom->node ) );
 		$length = $templateNodes->getLength();
