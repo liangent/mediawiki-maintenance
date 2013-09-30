@@ -34,10 +34,16 @@ class CollectTemplateUsage extends PageDomMaintenance {
 
 					if ( !$templateTitle || !$templateTitle->equals( $this->template ) ) {
 						if ( $templateTitle ) {
-							$page = WikiPage::factory( $templateTitle );
-							$target = $page->getRedirectTarget();
-							if ( $target && $target->equals( $this->template ) ) {
-								break;
+							try {
+								$page = WikiPage::factory( $templateTitle );
+							} catch ( MWException $e ) {
+								$page = null;
+							}
+							if ( $page ) {
+								$target = $page->getRedirectTarget();
+								if ( $target && $target->equals( $this->template ) ) {
+									break;
+								}
 							}
 						}
 						$templateName = null;
@@ -110,10 +116,16 @@ class CollectTemplateUsage extends PageDomMaintenance {
 			return;
 		}
 
-		$page = WikiPage::factory( $this->template );
-		$target = $page->getRedirectTarget();
-		if ( $target ) {
-			$this->template = $target;
+		try {
+			$page = WikiPage::factory( $this->template );
+		} catch ( MWException $e ) {
+			$page = null;
+		}
+		if ( $page ) {
+			$target = $page->getRedirectTarget();
+			if ( $target ) {
+				$this->template = $target;
+			}
 		}
 
 		$this->output( "Collecting template usage of [[{$this->template->getPrefixedText()}]].\n" );
