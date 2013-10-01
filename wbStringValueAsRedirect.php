@@ -17,17 +17,82 @@ class WbStringValueAsRedirect extends Maintenance {
 		$this->addOption( 'debug', 'Output extra verbose debug information', false );
 		$this->addOption( 'no-edit', 'Do not edit existing pages', false );
 		$this->addOption( 'no-self', 'Do not create self redirects', false );
+		$this->setBatchSize( -1 );
+		$this->batchRedirect = array();
+	}
+
+	public function getRedirectBasicArgs() {
+		static $basicArgs = null;
+		if ( $basicArgs === null ) {
+			$basicArgs = array_merge(
+				$this->hasOption( 'bot' ) ? array( '--bot' ) : array(),
+				$this->hasOption( 'no-edit' ) ? array( '--no-edit' ) : array(),
+				$this->hasOption( 'no-self' ) ? array( '--no-self' ) : array()
+			);
+		}
+		return $basicArgs;
+	}
+
+	public function doBatchRedirect() {
+		global $IP;
+
+		if ( $this->mBatchSize < 0 ) {
+			return;
+		}
+		foreach ( $this->batchRedirect as $site => &$redirects ) {
+			if ( count( $redirects ) > $this->mBatchSize ) {
+				$this->output( "$site: batched redirects:" );
+				$args = array_merge(
+					$this->getRedirectBasicArgs(), array( '--wiki', $site )
+				);
+				foreach ( $redirects as $redirect ) {
+					$args = array_merge( $args, $redirect );
+				}
+				$cmd = wfShellWikiCmd( "$IP/maintenance/makeRedirect.php", $args );
+				if ( $this->hasOption( 'dry-run' ) ) {
+					$this->output( " (dry-run)\n$cmd\n" );
+				} else {
+					$retVal = 1;
+					$msg = wfShellExec( $cmd, $retVal, array(), array( 'memory' => 0 ) );
+					if ( $retVal ) {
+						$this->output( " ERROR: $retVal");
+					} else {
+						$this->output( " ok" );
+					}
+					if ( $msg ) {
+						$msg = explode( "\n", trim( $msg ) );
+					} else {
+						$msg = array();
+					}
+					if ( count( $msg ) === count( $redirects ) ) {
+						$this->output( ":\n" );
+						for ( $i = 0; $i < count( $msg ); $i++ ) {
+							list( $redirectPageName, $targetPageName ) = $redirects[$i];
+							$redirectMsg = trim( $msg[$i] );
+							$this->output( "  $site: [[$redirectPageName]] "
+								. "=> [[$targetPageName]]: $redirectMsg\n"
+							);
+						}
+					} else {
+						$this->output( " (bad output)\n" );
+					}
+				}
+				$redirects = array();
+			}
+		}
 	}
 
 	public function makeRedirect( $site, $redirectPageName, $targetPageName ) {
 		global $IP;
 
 		$this->output( "  $site: [[$redirectPageName]] => [[$targetPageName]] ..." );
+		if ( $this->mBatchSize >= 0 ) {
+			$this->batchRedirect[$site][] = array( $redirectPageName, $targetPageName );
+			$this->output( " (batched)\n" );
+			return;
+		}
 		$cmd = wfShellWikiCmd( "$IP/maintenance/makeRedirect.php", array_merge(
-			$this->hasOption( 'bot' ) ? array( '--bot' ) : array(),
-			$this->hasOption( 'no-edit' ) ? array( '--no-edit' ) : array(),
-			$this->hasOption( 'no-self' ) ? array( '--no-self' ) : array(),
-			array( '--wiki', $site, $redirectPageName, $targetPageName )
+			$this->getRedirectBasicArgs(), array( '--wiki', $site, $redirectPageName, $targetPageName )
 		) );
 		if ( $this->hasOption( 'dry-run' ) ) {
 			$this->output( " (dry-run)\n$cmd\n" );
@@ -78,6 +143,7 @@ class WbStringValueAsRedirect extends Maintenance {
 				$this->makeRedirect( $site, $stringValue, $siteLink->getPageName() );
 			}
 		}
+		$this->doBatchRedirect();
 	}
 
 	public function execute() {
