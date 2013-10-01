@@ -12,31 +12,26 @@ class MakeRedirect extends Maintenance {
 		$this->addOption( 'no-self', 'Do not create self redirects', false );
 	}
 
-	public function execute() {
-		$fromTitle = Title::newFromText( $this->getArg( 0 ) );
-		$toTitle = Title::newFromText( $this->getArg( 1 ) );
+	public function doMake( $fromText, $toText ) {
+		$fromTitle = Title::newFromText( $fromText );
+		$toTitle = Title::newFromText( $toText );
 		if ( !$fromTitle || !$toTitle ) {
-			$this->output( "invalid-title\n" );
-			die( 1 );
+			return array( 1, 'invalid-title' );
 		}
 		if ( $fromTitle->equals( $toTitle ) && $this->hasOption( 'no-self' ) ) {
-			$this->output( "no-self\n" );
-			die( 2 );
+			return array( 2, 'no-self' );
 		}
 		try {
 			$fromWikiPage = WikiPage::factory( $fromTitle );
 		} catch ( MWException $e ) {
-			$this->output( "invalid-page\n" );
-			die( 1 );
+			return array( 1, 'invalid-page' );
 		}
 		if ( $fromWikiPage->exists() ) {
 			$currentRedir = $fromWikiPage->getRedirectTarget();
 			if ( $currentRedir && $currentRedir->equals( $toTitle ) ) {
-				$this->output( "no-change\n" );
-				return;
+				return array( 0, 'no-change' );
 			} elseif ( $this->getOption( 'no-edit' ) ) {
-				$this->output( "no-edit\n" );
-				die( 2 );
+				return array( 2, 'no-edit' );
 			}
 		}
 		$contentHandler = ContentHandler::getForTitle( $fromTitle );
@@ -44,12 +39,26 @@ class MakeRedirect extends Maintenance {
 		if ( $fromWikiPage->doEditContent( $redirectContent, '',
 			$this->hasOption( 'bot' ) ? EDIT_SUPPRESS_RC : 0
 		)->isOK() ) {
-			$this->output( "success\n" );
-			return;
+			return array( 0, 'success' );
 		} else {
-			$this->output( "failure\n" );
-			die( 4 );
+			return array( 4, 'failure' );
 		}
+	}
+
+	public function execute() {
+		$fromText = null;
+		$retVal = 0;
+		foreach ( $this->mArgs as $arg ) {
+			if ( $fromText === null ) {
+				$fromText = $arg;
+			} else {
+				list( $thisRetVal, $message ) = $this->doMake( $fromText, $arg );
+				$retVal = max( $retVal, $thisRetVal );
+				$this->output( "$message\n" );
+				$fromText = null;
+			}
+		}
+		die( $retVal );
 	}
 }
 
