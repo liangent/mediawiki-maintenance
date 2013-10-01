@@ -183,6 +183,8 @@ class WbStringValueAsRedirect extends Maintenance {
 		$this->importCallback = $importer->setRevisionCallback(
 			array( $this, 'handleRevision' ) );
 		$retVal = $importer->doImport();
+		$this->mBatchSize = 0;
+		$this->doBatchRedirect();
 		$this->output( "done.\n" );
 		return $retVal;
 	}
