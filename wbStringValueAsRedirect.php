@@ -74,7 +74,7 @@ class WbStringValueAsRedirect extends Maintenance {
 							);
 						}
 					} else {
-						$this->output( " (bad output)\n" );
+						$this->output( " (bad-output)\n" );
 					}
 				}
 				$redirects = array();
