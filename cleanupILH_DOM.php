@@ -186,7 +186,7 @@ class CleanupILH_DOM extends PageDomMaintenance {
 		) );
 	}
 
-	public function executeTitleDom( $title, $dom, $data ) {
+	public function executeTitleDom( $title, $dom, $rev, $data ) {
 		static $parserOutput = null;
 
 		$this->domModified = false;
@@ -195,8 +195,9 @@ class CleanupILH_DOM extends PageDomMaintenance {
 		if ( $this->domModified ) {
 			$this->output( "\tsaving..." );
 			if ( WikiPage::factory( $title )->doEdit( $text,
-				wfMessage( 'ts-cleanup-ilh' )->text(), EDIT_MINOR )->isOK()
-			) {
+				wfMessage( 'ts-cleanup-ilh' )->text(), EDIT_MINOR,
+				$rev ? $rev->getId() : false
+			)->isOK() ) {
 				$this->output( " done.\n" );
 			} else {
 				$this->output( " ERROR.\n" );

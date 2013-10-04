@@ -60,6 +60,7 @@ class PageDomMaintenance extends PageMaintenance {
 	public function executeTitle( $title, $data = null ) {
 		if ( $this->hasOption( 'remote' ) ) {
 			$dom = RemoteUtils::preprocessTitleToDom( $title );
+			$rev = null;
 		} else {
 			global $wgParser;
 			$rev = Revision::newFromTitle( $title );
@@ -81,10 +82,10 @@ class PageDomMaintenance extends PageMaintenance {
 		}
 		$this->output( "* XML DOM loaded.\n" );
 
-		$this->executeTitleDom( $title, $dom, $data );
+		$this->executeTitleDom( $title, $dom, $rev, $data );
 	}
 
-	public function executeTitleDom( $title, $dom, $data ) {
+	public function executeTitleDom( $title, $dom, $rev, $data ) {
 	}
 
 	public function executeTemplateNode( $node, $arrayNode ) {

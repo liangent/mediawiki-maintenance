@@ -13,7 +13,7 @@ class CollectTemplateUsage extends PageDomMaintenance {
 		$this->args = array();
 	}
 
-	public function executeTitleDom( $title, $dom, $data = null ) {
+	public function executeTitleDom( $title, $dom, $rev, $data = null ) {
 
 		$templateNodes = new PPNode_DOM( $dom->getXPath()->query( '//template', $dom->node ) );
 		$length = $templateNodes->getLength();
