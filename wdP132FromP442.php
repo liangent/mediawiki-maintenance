@@ -34,7 +34,12 @@ class WdP132FromP442 extends PageEntityMaintenance {
 	}
 
 	public function makeP132FromP442( $entity, $claim ) {
-		$name = $entity->getLabel( 'zh-cn' );
+		$factory = Wikibase\Repo\WikibaseRepo::getDefaultInstance()->getLanguageFallbackChainFactory();
+		$nameInfo = $factory->newFromLanguageCode( 'zh-cn',
+			Wikibase\LanguageFallbackChainFactory::FALLBACK_SELF
+			| Wikibase\LanguageFallbackChainFactory::FALLBACK_VARIANTS
+		)->extractPreferredValue( $entity->getLabels() );
+		$name = $nameInfo ? $nameInfo['value'] : false;
 		$value = $claim->getMainSnak()->getDataValue()->getValue();
 		$this->output( "\t$value" );
 		try {
