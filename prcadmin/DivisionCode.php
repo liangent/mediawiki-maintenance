@@ -39,6 +39,44 @@ class DivisionCode {
 		}
 		return $str;
 	}
+
+	public function getCode1() {
+		return $this->code1;
+	}
+
+	public function getCode2() {
+		return $this->code2;
+	}
+
+	public function getCode3() {
+		return $this->code3;
+	}
+
+	public function getCode4() {
+		return $this->code4;
+	}
+
+	public function getCode5() {
+		return $this->code5;
+	}
+
+	public function getCode6() {
+		return $this->code6;
+	}
+
+	public function getLevel() {
+		if ( $this->code5 !== null ) {
+			return 5;
+		} elseif ( $this->code4 !== null ) {
+			return 4;
+		} elseif ( $this->code3 !== null ) {
+			return 3;
+		} elseif ( $this->code2 !== null ) {
+			return 2;
+		} else {
+			return 1;
+		}
+	}
 }
 
 class DivisionCodeException extends Exception {}
