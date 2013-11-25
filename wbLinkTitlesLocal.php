@@ -136,6 +136,7 @@ class WbLinkTitlesLocal extends Maintenance {
 		$items[''] = $itemUnlinked;
 		$labels = array();
 		$descriptions = array();
+		$aliases = array();
 		$siteLinks = array();
 		$claims = null;
 		$itemId = null;
@@ -149,6 +150,13 @@ class WbLinkTitlesLocal extends Maintenance {
 				$descriptions += $item->getDescriptions();
 			} else {
 				return null;
+			}
+			foreach ( $item->getAllAliases() as $languageCode => $itemAliases ) {
+				if ( isset( $aliases[$languageCode] ) ) {
+					$aliases[$languageCode] = array_unique( array_merge( $aliases[$languageCode], $itemAliases ) );
+				} else {
+					$aliases[$languageCode] = $itemAliases;
+				}
 			}
 			if ( count( $item->getClaims() ) !== 0 ) {
 				if ( $claims === null ) {
@@ -179,6 +187,7 @@ class WbLinkTitlesLocal extends Maintenance {
 		$item->setId( $itemId );
 		$item->setLabels( $labels );
 		$item->setDescriptions( $descriptions );
+		$item->setAllAliases( $aliases );
 		$item->setClaims( $claims );
 		foreach ( $siteLinks as $siteLink ) {
 			$item->addSimpleSiteLink( $siteLink );
