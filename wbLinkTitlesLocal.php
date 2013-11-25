@@ -217,6 +217,7 @@ class WbLinkTitlesLocal extends Maintenance {
 		for ( $i = 0; $i <= $maxRetries; $i++ ) {
 			$status = $itemContent->save( $mergeMessage, null, $this->hasOption( 'bot' ) ? EDIT_SUPPRESS_RC : 0, false );
 			if ( $status->isGood() ) {
+				$result['*'] = 'merged';
 				foreach ( $this->sitePages as $siteId => $pageName ) {
 					try {
 						$siteLink = $targetItem->getSimpleSiteLink( $siteId );
