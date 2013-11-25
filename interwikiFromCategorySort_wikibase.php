@@ -12,6 +12,7 @@ class InterwikiFromCategorySort_wikibase extends Maintenance {
 		$this->addOption( 'dry-run', 'Do not really call the linker', false );
 		$this->addOption( 'regex-replace', 'Do replacement before passing sortkey to interwiki.py', false, true );
 		$this->addOption( 'regex-replacement', 'Replace with this string, empty by default', false, true );
+		$this->addOption( 'wikibase-merge', 'Try to merge items on Wikibase Repo', false );
 	}
 
 	public function execute() {
@@ -112,6 +113,9 @@ class InterwikiFromCategorySort_wikibase extends Maintenance {
 				)->text(),
 				$wgDBname, $title->getFullText(),
 			);
+			if ( $this->hasOption( 'wikibase-merge' ) ) {
+				$args[] = '--merge';
+			}
 			foreach ( $sites as $site ) {
 				$args = array_merge( $args, array( $site, $fptext ) );
 			}
