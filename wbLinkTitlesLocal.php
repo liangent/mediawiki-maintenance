@@ -48,6 +48,7 @@ class WbLinkTitlesLocal extends Maintenance {
 			}
 		}
 
+		$this->entityContentFactory = Wikibase\Repo\WikibaseRepo::getDefaultInstance()->getEntityContentFactory();
 		$this->result = $result;
 		$this->sitePages = $sitePages;
 		$result = $this->executeSitePages();
@@ -55,22 +56,26 @@ class WbLinkTitlesLocal extends Maintenance {
 		$this->output( "\n" );
 	}
 
-	public function saveOneItem( $item, $itemContent, $linkedSitePages, $result, $tries ) {
+	public function getLinkedSitePagesText( $linkedSitePages ) {
 		global $wgContLang;
+		$linkedPieces = array();
+		foreach ( $linkedSitePages as $siteId => $pageName ) {
+			$linkedPieces[] = wfMessage( 'ts-wblinktitles-summary-item' )->params( $siteId, $pageName )->plain();
+		}
+		return $wgContLang->listToText( $linkedPieces );
+	}
+
+	public function saveOneItem( $item, $itemContent, $linkedSitePages, $result, $tries ) {
 		if ( $itemContent ) {
 			$baseRevId = $itemContent->getWikiPage()->getLatest();
 			if ( $item ) {
 				$itemContent->setItem( $item );
 			}
 		} else {
-			$entityContentFactory = Wikibase\Repo\WikibaseRepo::getDefaultInstance()->getEntityContentFactory();
-			$itemContent = $entityContentFactory->newFromEntity( $item );
+			$itemContent = $this->entityContentFactory->newFromEntity( $item );
 			$baseRevId = false;
 		}
-		foreach ( $linkedSitePages as $siteId => $pageName ) {
-			$linkedPieces[] = wfMessage( 'ts-wblinktitles-summary-item' )->params( $siteId, $pageName )->plain();
-		}
-		$summary = wfMessage( 'ts-wblinktitles-summary' )->params( $wgContLang->listToText( $linkedPieces ) )->text();
+		$summary = wfMessage( 'ts-wblinktitles-summary' )->params( $this->getLinkedSitePagesText( $linkedSitePages ) )->text();
 		$status = $itemContent->save( $summary, null,
 			( $baseRevId ? 0 : EDIT_NEW ) |
 			( $this->hasOption( 'bot' ) ? EDIT_SUPPRESS_RC : 0 ),
@@ -97,8 +102,7 @@ class WbLinkTitlesLocal extends Maintenance {
 	}
 
 	public function editUnique( $itemUnlinked, $uniqueItemId, $itemIds, $result, $tries ) {
-		$entityContentFactory = Wikibase\Repo\WikibaseRepo::getDefaultInstance()->getEntityContentFactory();
-		$itemContent = $entityContentFactory->getFromId( $uniqueItemId );
+		$itemContent = $this->entityContentFactory->getFromId( $uniqueItemId );
 		$itemTouched = false;
 		$linkedSitePages = array();
 		$conflict = false;
@@ -127,8 +131,130 @@ class WbLinkTitlesLocal extends Maintenance {
 		return array( $conflict, $result );
 	}
 
+	public function tryMerge( $items, $itemUnlinked, &$linkedSitePages ) {
+		$random = array_rand( $items );
+		$items[''] = $itemUnlinked;
+		$labels = array();
+		$descriptions = array();
+		$siteLinks = array();
+		$claims = null;
+		$itemId = null;
+		foreach ( $items as $itemKey => $item ) {
+			if ( $item->getLabels() + $labels == $labels + $item->getLabels() ) {
+				$labels += $item->getLabels();
+			} else {
+				return null;
+			}
+			if ( $item->getDescriptions() + $descriptions == $descriptions + $item->getDescriptions() ) {
+				$descriptions += $item->getDescriptions();
+			} else {
+				return null;
+			}
+			if ( count( $item->getClaims() ) !== 0 ) {
+				if ( $claims === null ) {
+					$claims = $item->getClaims();
+					$itemId = $item->getId();
+				} else {
+					return null;
+				}
+			}
+			foreach ( $item->getSimpleSiteLinks() as $siteLink ) {
+				if ( isset( $siteLinks[$siteLink->getSiteId()] ) ) {
+					if ( $siteLinks[$siteLink->getSiteId()]->getPageName() !== $siteLink->getPageName() ) {
+						return null;
+					}
+				} else {
+					$siteLinks[$siteLink->getSiteId()] = $siteLink;
+					if ( $itemKey === '' ) {
+						$linkedSitePages[$siteLink->getSiteId()] = $siteLink->getPageName();
+					}
+				}
+			}
+		}
+		$claims = new Wikibase\Claims( $claims );
+		$item = Wikibase\Item::newEmpty();
+		if ( $itemId === null ) {
+			$itemId = $items[$random]->getId();
+		}
+		$item->setId( $itemId );
+		$item->setLabels( $labels );
+		$item->setDescriptions( $descriptions );
+		$item->setClaims( $claims );
+		foreach ( $siteLinks as $siteLink ) {
+			$item->addSimpleSiteLink( $siteLink );
+		}
+		return $item;
+	}
+
+	public function doMerge( $targetItem, $clearItemIds, $linkedSitePages, $result, $tries ) {
+		global $wgContLang;
+
+		$clearMessage = wfMessage( 'ts-wblinktitles-clear-summary' )->params( $targetItem->getId()->getSerialization() )->text();
+		$clearItem = Wikibase\Item::newEmpty();
+		$maxRetries = intval( $this->getOption( 'max-retries', 3 ) );
+		$clearedPieces = array();
+		foreach ( $clearItemIds as $clearItemId ) {
+			$clearItem->setId( $clearItemId );
+			$itemContent = $this->entityContentFactory->newFromEntity( $clearItem );
+			for ( $i = 0; $i <= $maxRetries; $i++ ) {
+				$status = $itemContent->save( $clearMessage, null, $this->hasOption( 'bot' ) ? EDIT_SUPPRESS_RC : 0, false );
+				if ( $status->isGood() ) {
+					break;
+				}
+			}
+			$clearedPieces[] = wfMessage( 'ts-wblinktitles-merge-summary-item' )
+				->params( $clearItemId->getSerialization() )->plain();
+		}
+
+		$clearedText = $wgContLang->listToText( $clearedPieces );
+		if ( count( $linkedSitePages ) ) {
+			$mergeMessage = wfMessage( 'ts-wblinktitles-merge-link-summary' )
+				->params( $clearedText, $this->getLinkedSitePagesText( $linkedSitePages ) )->text();
+		} else {
+			$mergeMessage = wfMessage( 'ts-wblinktitles-merge-summary' )->params( $clearedText )->text();
+		}
+		$itemContent = $this->entityContentFactory->newFromEntity( $targetItem );
+		for ( $i = 0; $i <= $maxRetries; $i++ ) {
+			$status = $itemContent->save( $mergeMessage, null, $this->hasOption( 'bot' ) ? EDIT_SUPPRESS_RC : 0, false );
+			if ( $status->isGood() ) {
+				foreach ( $this->sitePages as $siteId => $pageName ) {
+					try {
+						$siteLink = $targetItem->getSimpleSiteLink( $siteId );
+					} catch ( OutOfBoundsException $e ) {
+						continue;
+					}
+					if ( $siteLink->getPageName() === $pageName ) {
+						$result[$siteId] = $itemContent->getItem()->getId()->getSerialization();
+					}
+				}
+				break;
+			}
+		}
+		$result += array_fill_keys( array_keys( $this->sitePages ), '?' );
+		return $result;
+	}
+
 	public function attemptMerge( $itemUnlinked, $itemIds, $uniqueItemIds, $result, $tries ) {
-		throw new MWException( 'Merge not implemented yet.' );
+		$itemContents = array();
+		$items = array();
+		foreach ( $uniqueItemIds as $itemIdStr => $itemId ) {
+			$itemContent = $this->entityContentFactory->getFromId( $itemId );
+			$itemContents[$itemIdStr] = $itemContent;
+			$items[$itemIdStr] = $itemContent->getItem();
+		}
+		$linkedSitePages = array();
+		$targetItem = $this->tryMerge( $items, $itemUnlinked, $linkedSitePages );
+		if ( $targetItem === null ) {
+			return null;
+		}
+		$targetItemId = $targetItem->getId();
+		$clearItemIds = array();
+		foreach ( $uniqueItemIds as $itemId ) {
+			if ( !$itemId->equals( $targetItemId ) ) {
+				$clearItemIds[] = $itemId;
+			}
+		}
+		return array( false, $this->doMerge( $targetItem, $clearItemIds, $linkedSitePages, $result, $tries ) );
 	}
 
 	public function executeEdit( $itemUnlinked, $itemIds, $uniqueItemIds, $result, $tries ) {
@@ -138,17 +264,19 @@ class WbLinkTitlesLocal extends Maintenance {
 			$uniqueItemId = reset( $uniqueItemIds );
 			return $this->editUnique( $itemUnlinked, $uniqueItemId, $itemIds, $result, $tries );
 		} elseif ( $this->hasOption( 'merge' ) ) {
-			return $this->attemptMerge( $itemUnlinked, $itemIds, $uniqueItemIds, $result, $tries );
-		} else {
-			# Conflict!
-			foreach ( $itemIds as $siteId => $itemId ) {
-				$result[$siteId] = $itemId->getSerialization();
+			$merge = $this->attemptMerge( $itemUnlinked, $itemIds, $uniqueItemIds, $result, $tries );
+			if ( $merge !== null ) {
+				return $merge;
 			}
-			foreach ( $itemUnlinked->getSimpleSiteLinks() as $siteLink ) {
-				$result[$siteLink->getSiteId()] = '*';
-			}
-			return array( true, $result );
 		}
+		# Conflict!
+		foreach ( $itemIds as $siteId => $itemId ) {
+			$result[$siteId] = $itemId->getSerialization();
+		}
+		foreach ( $itemUnlinked->getSimpleSiteLinks() as $siteLink ) {
+			$result[$siteLink->getSiteId()] = '*';
+		}
+		return array( true, $result );
 	}
 
 	public function executeSitePages( $tries = 0 ) {
