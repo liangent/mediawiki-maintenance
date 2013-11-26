@@ -131,8 +131,19 @@ class WbLinkTitlesLocal extends Maintenance {
 		return array( $conflict, $result );
 	}
 
+	public function pickPreferredTarget( $items ) {
+		$keyArray = array();
+		$numericId = array();
+		foreach ( $items as $key => $item ) {
+			$keyArray[] = $key;
+			$numericId[] = $item->getId()->getNumericId();
+		}
+		array_multisort( $numericId, SORT_ASC, SORT_NUMERIC, $keyArray );
+		return isset( $keyArray[0] ) ? $keyArray[0] : $keyArray;
+	}
+
 	public function tryMerge( $items, $itemUnlinked, &$linkedSitePages ) {
-		$random = array_rand( $items );
+		$preferred = $this->pickPreferredTarget( $items );
 		$items[''] = $itemUnlinked;
 		$labels = array();
 		$descriptions = array();
@@ -182,7 +193,7 @@ class WbLinkTitlesLocal extends Maintenance {
 		$claims = new Wikibase\Claims( $claims );
 		$item = Wikibase\Item::newEmpty();
 		if ( $itemId === null ) {
-			$itemId = $items[$random]->getId();
+			$itemId = $items[$preferred]->getId();
 		}
 		$item->setId( $itemId );
 		$item->setLabels( $labels );
