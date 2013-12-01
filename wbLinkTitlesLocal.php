@@ -234,20 +234,32 @@ class WbLinkTitlesLocal extends Maintenance {
 			$mergeMessage = wfMessage( 'ts-wblinktitles-merge-summary' )->params( $clearedText )->text();
 		}
 		$itemContent = $this->entityContentFactory->newFromEntity( $targetItem );
-		for ( $i = 0; $i <= $maxRetries; $i++ ) {
-			$status = $itemContent->save( $mergeMessage, null, $this->hasOption( 'bot' ) ? EDIT_SUPPRESS_RC : 0, false );
-			if ( $status->isGood() ) {
-				$result['*'] = 'merged';
-				foreach ( $this->sitePages as $siteId => $pageName ) {
-					try {
-						$siteLink = $targetItem->getSimpleSiteLink( $siteId );
-					} catch ( OutOfBoundsException $e ) {
-						continue;
+		$baseRevId = $itemContent->getWikiPage()->getLatest();
+		$break2 = false;
+		foreach ( array( $baseRevId, false ) as $effectiveBaseRevId ) {
+			for ( $i = 0; $i <= $maxRetries; $i++ ) {
+				$status = $itemContent->save(
+					$mergeMessage, null,
+					$this->hasOption( 'bot' ) ? EDIT_SUPPRESS_RC : 0,
+					$effectiveBaseRevId
+				);
+				if ( $status->isGood() ) {
+					$result['*'] = ( $effectiveBaseRevId === false ? 'merged-force' : 'merged' );
+					foreach ( $this->sitePages as $siteId => $pageName ) {
+						try {
+							$siteLink = $targetItem->getSimpleSiteLink( $siteId );
+						} catch ( OutOfBoundsException $e ) {
+							continue;
+						}
+						if ( $siteLink->getPageName() === $pageName ) {
+							$result[$siteId] = $itemContent->getItem()->getId()->getSerialization();
+						}
 					}
-					if ( $siteLink->getPageName() === $pageName ) {
-						$result[$siteId] = $itemContent->getItem()->getId()->getSerialization();
-					}
+					$break2 = true;
+					break;
 				}
+			}
+			if ( $break2 ) {
 				break;
 			}
 		}
