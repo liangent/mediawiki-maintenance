@@ -111,6 +111,10 @@ class PopulateCite extends Maintenance {
 			$titletext = $this->getOption( 'template' ) . '/' . $anchor;
 			$sourcetitle = MWNamespace::getCanonicalName( NS_TEMPLATE ) . ':' . $titletext;
 			$localtitle = Title::makeTitleSafe( NS_TEMPLATE, $titletext );
+			if ( !$localtitle ) {
+				$this->output( " invalid title.\n" );
+				continue;
+			}
 			if ( $localtitle->exists() ) {
 				$this->output( " exists locally.\n" );
 				continue;
