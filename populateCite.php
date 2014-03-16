@@ -14,6 +14,8 @@ class PopulateCite extends Maintenance {
 	}
 
 	public function execute() {
+		global $wgParser;
+
 		$process = array();
 		$articles = array();
 		if ( $this->hasOption( 'category' ) ) {
@@ -38,7 +40,7 @@ class PopulateCite extends Maintenance {
 				preg_match_all( $citeRe, $text, &$matches, PREG_PATTERN_ORDER );
 				$count = 0;
 				foreach ( $matches[1] as $cite ) {
-					$anchor = Sanitizer::escapeId( Sanitizer::normalizeSectionNameWhitespace( $cite ), 'noninitial' );
+					$anchor = (string)substr( $wgParser->guessSectionNameFromWikiText( $cite ), 1 );
 					if ( !isset( $process[$anchor] ) ) {
 						$process[$anchor] = array( $cite, $title );
 						$count++;
