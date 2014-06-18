@@ -171,7 +171,7 @@ class MigrateCGroup extends PageDomMaintenance {
 		foreach ( $this->pieces as $piece ) {
 			switch ( $piece['type'] ) {
 			case 'comment':
-				foreach ( explode( "\n", trim( $piece['text'] ) ) as $commentLine ) {
+				foreach ( explode( "\n", trim( substr( trim( $piece['text'] ), 4, -3 ) ) ) as $commentLine ) {
 					$pieces[] = "-- $commentLine";
 				}
 				break;
