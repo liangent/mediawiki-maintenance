@@ -124,6 +124,9 @@ class MigrateCGroup extends PageDomMaintenance {
 					throw new MWException( 'unclosed noinclude' );
 				}
 				$siblingText = $this->nodeToWikitext( $sibling );
+				if ( $siblingText == '<noinclude>' && $sibling->getName() == 'ignore' ) {
+					throw new MWException( 'nested noinclude' );
+				}
 				if ( $siblingText == '</noinclude>' && $sibling->getName() == 'ignore' ) {
 					# Once we got a </noinclude>, this is set back to false.
 					$this->insideNoinclude = true;
