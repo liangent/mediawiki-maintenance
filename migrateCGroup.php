@@ -159,8 +159,8 @@ class MigrateCGroup extends PageDomMaintenance {
 		}
 	}
 
-	public function buildLuaString( $str, $block = false ) {
-		if ( !$block && strpos( $str, '\\' ) === false ) {
+	public function buildLuaString( $str ) {
+		if ( strpos( $str, '\\' ) === false && strpos( $str, "\n" ) === false ) {
 			if ( strpos( $str, "'" ) === false ) {
 				return "'$str'";
 			} elseif ( strpos( $str, '"' ) === false ) {
@@ -193,7 +193,7 @@ class MigrateCGroup extends PageDomMaintenance {
 				break;
 			case 'text':
 				$pieces[] = "{ type = 'text', text = "
-					. $this->buildLuaString( "\n" . trim( $piece['text'] ) . "\n", true )
+					. $this->buildLuaString( "\n" . trim( $piece['text'] ) . "\n" )
 					. " },";
 				break;
 			case 'item':
