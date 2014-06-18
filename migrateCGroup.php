@@ -13,11 +13,32 @@ class MigrateCGroup extends PageDomMaintenance {
 	}
 
 	public function executeTitleDom( $title, $dom, $rev, $data ) {
-		$this->clearState();
-		$this->nodeToWikitext( $dom );
+		$text = null;
+		if ( $title->isRedirect() ) {
+			try {
+				$page = WikiPage::factory( $title );
+			} catch ( MWException $e ) {
+				$page = null;
+			}
+			if ( $page ) {
+				$redirectTitle = $page->getRedirectTarget();
+				if ( $redirectTitle ) {
+					$text = $this->buildLuaRedirect(
+						Title::makeTitle( NS_MODULE, $redirectTitle->getText() )
+					);
+				}
+			}
+		} else {
+			$this->clearState();
+			$this->nodeToWikitext( $dom );
+			$text = $this->buildLua();
+		}
+		if ( $text === null ) {
+			return;
+		}
 		$moduleTitle = Title::makeTitle( NS_MODULE, $title->getText() );
 		$this->output( "Editing [[{$moduleTitle->getPrefixedText()}]] ..." );
-		$status = WikiPage::factory( $moduleTitle )->doEdit( $this->buildLua(),
+		$status = WikiPage::factory( $moduleTitle )->doEdit( $text,
 			wfMessage( 'ts-migrate-cgroup-summary' )->params( $title->getPrefixedText() )->text()
 		);
 		if ( $status->isGood() ) {
@@ -189,6 +210,10 @@ class MigrateCGroup extends PageDomMaintenance {
 		}
 		$pieces[] = "\n},\n}\n";
 		return implode( "\n", $pieces );
+	}
+
+	public function buildLuaRedirect( $title ) {
+		return 'return require( ' . $this->buildLuaString( $title->getPrefixedText() ) . ' );';
 	}
 }
 
