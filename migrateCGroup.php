@@ -8,6 +8,7 @@ class MigrateCGroup extends PageDomMaintenance {
 		$this->name = '';
 		$this->description = '';
 		$this->pieces = array();
+		$this->skipComment = false;
 		$this->insideNoinclude = false;
 	}
 
@@ -97,6 +98,12 @@ class MigrateCGroup extends PageDomMaintenance {
 			}
 		}
 
+		$sibling = $node->getNextSibling();
+		if ( $sibling && $sibling->getName() == 'comment' ) {
+			$this->executeComment( $sibling, $sibling->getChildren() );
+			$this->skipComment = true;
+		}
+
 		if ( count( $piece ) ) {
 			$this->pieces[] = $piece;
 		}
@@ -104,6 +111,10 @@ class MigrateCGroup extends PageDomMaintenance {
 
 	public function executeComment( $node, $arrayNode ) {
 		if ( $this->insideNoinclude ) {
+			return;
+		}
+		if ( $this->skipComment ) {
+			$this->skipComment = false;
 			return;
 		}
 		$this->pieces[] = array(
