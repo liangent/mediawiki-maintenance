@@ -22,22 +22,6 @@ class MigrateCGroup extends PageDomMaintenance {
 		);
 		if ( $status->isGood() ) {
 			$this->output( " done.\n" );
-			$moduleDocTitle = Title::makeTitleSafe( NS_MODULE, $title->getText() . '/doc' );
-			if ( $moduleDocTitle ) {
-				$this->output( "Editing [[{$moduleDocTitle->getPrefixedText()}]] ..." );
-				$status = WikiPage::factory( $moduleDocTitle )->doEdit(
-					wfMessage( 'ts-migrate-cgroup-doc' )->plain(),
-					wfMessage( 'ts-migrate-cgroup-doc-summary' )->params(
-						$moduleTitle->getPrefixedText(),
-						$title->getPrefixedText()
-					)->text()
-				);
-				if ( $status->isGood() ) {
-					$this->output( " done.\n" );
-				} else {
-					$this->output( " ERROR.\n" );
-				}
-			}
 		} else {
 			$this->output( " ERROR.\n" );
 		}
