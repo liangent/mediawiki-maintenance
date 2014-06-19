@@ -146,13 +146,13 @@ class MigrateCGroup extends PageDomMaintenance {
 			while ( true ) {
 				$sibling = $sibling->getNextSibling();
 				if ( $sibling === false ) {
-					throw new MWException( 'unclosed noinclude' );
+					throw new MWException( "unclosed noinclude, near:\n$noincludeText" );
 				}
 				$siblingText = $this->nodeToWikitext( $sibling );
 				if ( $sibling->getName() == 'ignore' ) {
 					$siblingText = strtolower( $siblingText );
 					if ( $siblingText == '<noinclude>' ) {
-						throw new MWException( 'nested noinclude' );
+						throw new MWException( "nested noinclude, near:\n$noincludeText" );
 					}
 					if ( $siblingText == '</noinclude>' ) {
 						# Once we got a </noinclude>, this is set back to false.
