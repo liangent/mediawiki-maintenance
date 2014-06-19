@@ -4,6 +4,11 @@ require_once( dirname( __FILE__ ) . '/PageDomMaintenance.php' );
 
 class MigrateCGroup extends PageDomMaintenance {
 
+	public function __construct() {
+		parent::__construct();
+		$this->addOption( 'dry-run', 'Do not do real edits.' );
+	}
+
 	public function clearState() {
 		$this->name = '';
 		$this->description = '';
@@ -38,6 +43,10 @@ class MigrateCGroup extends PageDomMaintenance {
 		}
 		$moduleTitle = Title::makeTitle( NS_MODULE, $title->getText() );
 		$this->output( "Editing [[{$moduleTitle->getPrefixedText()}]] ..." );
+		if ( $this->hasOption( 'dry-run' ) ) {
+			$this->output( " dry-run.\n" );
+			return;
+		}
 		$status = WikiPage::factory( $moduleTitle )->doEdit( $text,
 			wfMessage( 'ts-migrate-cgroup-summary' )->params( $title->getPrefixedText() )->text()
 		);
