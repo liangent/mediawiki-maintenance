@@ -109,6 +109,10 @@ class MigrateCGroup extends PageDomMaintenance {
 					$piece['type'] = 'item';
 					$piece['rule'] = trim( $this->nodeToWikitext( $arg['value'] ) );
 				}
+				if ( $template === 'citem' && $key === 'desc' ) {
+					$piece['type'] = 'item';
+					$piece['description'] = trim( $this->nodeToWikitext( $arg['value'] ) );
+				}
 			}
 		}
 
@@ -216,6 +220,9 @@ class MigrateCGroup extends PageDomMaintenance {
 				}
 				if ( isset( $piece['rule'] ) ) {
 					$line .= ", rule = " . $this->buildLuaString( $piece['rule'] );
+				}
+				if ( isset( $piece['description'] ) ) {
+					$line .= ", description = " . $this->buildLuaString( $piece['description'] );
 				}
 				$pieces[] = $line . " },";
 				break;
