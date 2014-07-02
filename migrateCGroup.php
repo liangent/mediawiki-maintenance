@@ -88,6 +88,10 @@ class MigrateCGroup extends PageDomMaintenance {
 					$template = 'cgrouph';
 				} elseif ( $templateTitle->getPrefixedText() === 'Template:CItemHidden' ) {
 					$template = 'citem';
+				} elseif ( $templateTitle->getPrefixedText() === 'Template:CItemLan' ) {
+					$template = 'citemlan';
+				} elseif ( $templateTitle->getPrefixedText() === 'Template:CItemLan/R' ) {
+					$template = 'citemlanr';
 				}
 
 				break;
@@ -101,11 +105,17 @@ class MigrateCGroup extends PageDomMaintenance {
 				if ( $template === 'cgrouph' && $key === 'desc' ) {
 					$this->description = trim( $this->nodeToWikitext( $arg['value'] ) );
 				}
-				if ( $template === 'citem' && $key === 'original' ) {
+				if ( $template === 'citem' && $key === 'original'
+					|| $template === 'citemlan' && $key === '2'
+					|| $template === 'citemlanr' && $key === '1'
+				) {
 					$piece['type'] = 'item';
 					$piece['original'] = trim( $this->nodeToWikitext( $arg['value'] ) );
 				}
-				if ( $template === 'citem' && $key === '1' ) {
+				if ( $template === 'citem' && $key === '1'
+					|| $template === 'citemlan' && $key === '1'
+					|| $template === 'citemlanr' && $key === '2'
+				) {
 					$piece['type'] = 'item';
 					$piece['rule'] = trim( $this->nodeToWikitext( $arg['value'] ) );
 				}
