@@ -55,6 +55,13 @@ class MigrateCGroup extends PageDomMaintenance {
 		} else {
 			$this->output( " ERROR.\n" );
 		}
+		if ( !$title->isRedirect() ) {
+			foreach ( $title->getRedirectsHere( NS_TEMPLATE ) as $redirect ) {
+				$this->output( ">>> Found redirect [[{$redirect->getPrefixedText()}]]\n" );
+				$this->executeTitle( $redirect );
+				$this->output( "<<<\n" );
+			}
+		}
 	}
 
 	public function executeTemplate( $node, $arrayNode ) {
