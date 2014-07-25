@@ -5,6 +5,9 @@
 require_once( dirname( __FILE__ ) . '/Maintenance.php' );
 
 class TranslateVariants extends Maintenance {
+
+	public $tablesPrepared = false;
+
 	public function __construct() {
 		parent::__construct();
 		$this->addOption( 'lang', 'Language to translate, such as zh', true, true );
@@ -13,6 +16,7 @@ class TranslateVariants extends Maintenance {
 		# $this->addOption( 'msg', 'If a variant code equals to $wgLanguageCode, write it without suffix.', false );
 		$this->addOption( 'dry-run', 'Do not really publish translations', false );
 		$this->addOption( 'delete', 'Follow delete actions as well', false );
+		$this->addOption( 'table', 'Extra conversion table to load (subpage)', false, true );
 	}
 
 	private function getTargets( $title, $lang ) {
@@ -49,6 +53,31 @@ class TranslateVariants extends Maintenance {
 		}
 
 		return $targets;
+	}
+
+	private function prepareTables( $lang ) {
+		if ( $this->tablesPrepared ) {
+			return;
+		}
+		$this->tablesPrepared = true;
+
+		$converter = $lang->getConverter();
+
+		$converter->mTablesLoaded = true;
+		$converter->mTables = false;
+		$converter->loadDefaultTables();
+		foreach ( $converter->mVariants as $var ) {
+			$cached = $converter->parseCachedTable( $var );
+			$converter->mTables[$var]->mergeArray( $cached );
+
+			if ( !$this->hasOption( 'table' ) ) {
+				continue;
+			}
+
+			$cached = $converter->parseCachedTable( $var, $this->getOption( 'table' ) );
+			$converter->mTables[$var]->mergeArray( $cached );
+		}
+		$converter->postLoadTables();
 	}
 
 	public function execute() {
@@ -122,6 +151,7 @@ class TranslateVariants extends Maintenance {
 			$summary = wfMessage( $userText === '' ? 'ts-variant-translate-from' : 'ts-variant-translate-from-user' )
 				->params( $title->getPrefixedText(), $page->getLatest(), $userText )->text();
 			foreach ( $this->getTargets( $title, $lang ) as $variant => $vtitle ) {
+				$this->prepareTables( $lang );
 				$vpage = WikiPage::factory( $vtitle );
 				# Translate text to the specified variant
 				$vtext = $lang->getConverter()->convertTo( $text, $variant );
