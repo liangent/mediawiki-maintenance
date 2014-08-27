@@ -308,6 +308,7 @@ class CleanupILH_DOM extends PageDomMaintenance {
 				case 'arwiki!4!':
 					$func = $noop;
 				case 'zhwiki-ilh!!3':
+				case 'zhwiki-ilh!!d':
 				case 'zhwiki-tsl!!4':
 				case 'arwiki!!4':
 				case 'arwiki!!نص':
