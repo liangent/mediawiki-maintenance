@@ -12,6 +12,7 @@ class PageMaintenance extends Maintenance {
 		$this->addOption( 'category', 'Work on pages in a category.' );
 		$this->addOption( 'random', 'Specify a point to start random processing.' );
 		$this->addOption( 'random-count', 'The maximum number of pages for random processing.' );
+		$this->addOption( 'random-ns', 'Only process random pages in given namespace(s).' );
 		$this->addOption( 'start', 'Specify a page ID to start processing.' );
 		$this->addOption( 'links', 'Process pages having links to some target. "template" or "page" only currently.' );
 		$this->addOption( 'links-page', 'Link target for --links= parameter.' );
@@ -85,15 +86,23 @@ class PageMaintenance extends Maintenance {
 				} else {
 					$rand = wfRandom();
 				}
+				$ns = MWNamespace::getValidNamespaces();
+				if ( $this->hasOption( 'random-ns' ) ) {
+					$ns = array_intersect( $ns, array_map( 'intval', preg_split(
+						'/,|:/', $this->getOption( 'random-ns' ), null, PREG_SPLIT_NO_EMPTY
+					) ) );
+				}
 				$info = $this->getRandomQueryInfo();
 				list( $tables, $fields, $conds, $options, $join_conds ) = $this->prepareQueryInfo( $info );
 				$conds[] = 'page_random > ' . $rand;
+				$conds['page_namespace'] = $ns;
 				$options['LIMIT'] = $count;
 				$options['ORDER BY'] = 'page_random';
 				$res = $db->select( $tables, $fields, $conds, __METHOD__, $options, $join_conds );
 				$titles = TitleArray::newFromResult( $res );
 				$source = 'random';
-				$this->output( "Working on < $count random pages starting from $rand.\n" );
+				$ns = implode( ', ', $ns );
+				$this->output( "Working on < $count random pages starting from $rand in namespace(s) $ns.\n" );
 			}
 		}
 		if ( is_null( $titles ) && $this->hasOption( 'start' ) ) {
