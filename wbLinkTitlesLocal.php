@@ -219,19 +219,35 @@ class WbLinkTitlesLocal extends Maintenance {
 
 		$clearMessage = wfMessage( 'ts-wblinktitles-clear-summary' )->params( $targetItem->getId()->getSerialization() )->text();
 		$clearItem = Wikibase\DataModel\Entity\Item::newEmpty();
+		$redirectMessage = wfMessage( 'ts-wblinktitles-redirect-summary' )->params( $targetItem->getId()->getSerialization() )->text();
 		$maxRetries = intval( $this->getOption( 'max-retries', 3 ) );
 		$clearedPieces = array();
 		foreach ( $clearItemIds as $clearItemId ) {
-			$clearItem->setId( $clearItemId );
-			$itemContent = $this->entityContentFactory->newFromEntity( $clearItem );
+			$redirect = new Wikibase\Lib\Store\EntityRedirect( $clearItemId, $targetItem->getId() );
+			$saved = false;
 			for ( $i = 0; $i <= $maxRetries; $i++ ) {
 				try {
-					$entityRevision = $this->entityStore->saveEntity(
-						$itemContent->getItem(), $clearMessage, new User(),
+					$entityRevision = $this->entityStore->saveRedirect(
+						$redirect, $redirectMessage, new User(),
 						$this->hasOption( 'bot' ) ? EDIT_SUPPRESS_RC : 0, false
 					);
+					$saved = true;
 					break;
 				} catch ( Wikibase\Lib\Store\StorageException $e ) {
+				}
+			}
+			if ( !$saved ) {
+				$clearItem->setId( $clearItemId );
+				$itemContent = $this->entityContentFactory->newFromEntity( $clearItem );
+				for ( $i = 0; $i <= $maxRetries; $i++ ) {
+					try {
+						$entityRevision = $this->entityStore->saveEntity(
+							$itemContent->getItem(), $clearMessage, new User(),
+							$this->hasOption( 'bot' ) ? EDIT_SUPPRESS_RC : 0, false
+						);
+						break;
+					} catch ( Wikibase\Lib\Store\StorageException $e ) {
+					}
 				}
 			}
 			$clearedPieces[] = wfMessage( 'ts-wblinktitles-merge-summary-item' )
