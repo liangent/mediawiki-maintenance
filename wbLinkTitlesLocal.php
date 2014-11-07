@@ -1,7 +1,5 @@
 <?php
 
-use Wikibase\Entity;
-
 require_once( dirname( __FILE__ ) . '/Maintenance.php' );
 
 class WbLinkTitlesLocal extends Maintenance {
@@ -49,11 +47,17 @@ class WbLinkTitlesLocal extends Maintenance {
 		}
 
 		$this->entityContentFactory = Wikibase\Repo\WikibaseRepo::getDefaultInstance()->getEntityContentFactory();
+		$this->entityStore = Wikibase\Repo\WikibaseRepo::getDefaultInstance()->getEntityStore();
 		$this->result = $result;
 		$this->sitePages = $sitePages;
 		$result = $this->executeSitePages();
 		$this->output( FormatJson::encode( $result ) );
 		$this->output( "\n" );
+	}
+
+	public function getContentFromId( $id ) {
+		$wikiPage = $this->entityStore->getWikiPageForEntity( $id );
+		return $wikiPage->getContent();
 	}
 
 	public function getLinkedSitePagesText( $linkedSitePages ) {
@@ -67,7 +71,8 @@ class WbLinkTitlesLocal extends Maintenance {
 
 	public function saveOneItem( $item, $itemContent, $linkedSitePages, $result, $tries ) {
 		if ( $itemContent ) {
-			$baseRevId = $itemContent->getWikiPage()->getLatest();
+			$wikiPage = $this->entityStore->getWikiPageForEntity( $itemContent->getItem()->getId() );
+			$baseRevId = $wikiPage->getLatest();
 			if ( $item ) {
 				$itemContent->setItem( $item );
 			}
@@ -76,25 +81,28 @@ class WbLinkTitlesLocal extends Maintenance {
 			$baseRevId = false;
 		}
 		$summary = wfMessage( 'ts-wblinktitles-summary' )->params( $this->getLinkedSitePagesText( $linkedSitePages ) )->text();
-		$status = $itemContent->save( $summary, null,
-			( $baseRevId ? 0 : EDIT_NEW ) |
-			( $this->hasOption( 'bot' ) ? EDIT_SUPPRESS_RC : 0 ),
-		$baseRevId );
-		if ( $status->isGood() ) {
-			# Nice
+		try {
+			$entityRevision = $this->entityStore->saveEntity(
+				$itemContent->getItem(), $summary, new User(),
+				( $baseRevId ? 0 : EDIT_NEW ) |
+				( $this->hasOption( 'bot' ) ? EDIT_SUPPRESS_RC : 0 ),
+				$baseRevId
+			);
 			$savedItemId = $itemContent->getItem()->getId();
 			$result = array_fill_keys( array_keys( $linkedSitePages ), $savedItemId->getSerialization() ) + $result;
-		} elseif ( $tries < intval( $this->getOption( 'max-retries', 3 ) ) ) {
-			$result = $this->executeSitePages( $tries + 1 );
-		} else {
-			$result = array_fill_keys( array_keys( $linkedSitePages ), '?' ) + $result;
+		} catch ( Wikibase\Lib\Store\StorageException $e ) {
+			if ( $tries < intval( $this->getOption( 'max-retries', 3 ) ) ) {
+				$result = $this->executeSitePages( $tries + 1 );
+			} else {
+				$result = array_fill_keys( array_keys( $linkedSitePages ), '?' ) + $result;
+			}
 		}
 		return $result;
 	}
 
 	public function editUnlinked( $itemUnlinked, $result, $tries ) {
 		$linkedSitePages = array();
-		foreach ( $itemUnlinked->getSimpleSiteLinks() as $siteLink ) {
+		foreach ( $itemUnlinked->getSiteLinks() as $siteLink ) {
 			$linkedSitePages[$siteLink->getSiteId()] = $siteLink->getPageName();
 		}
 		$result = $this->saveOneItem( $itemUnlinked, null, $linkedSitePages, $result, $tries );
@@ -102,16 +110,16 @@ class WbLinkTitlesLocal extends Maintenance {
 	}
 
 	public function editUnique( $itemUnlinked, $uniqueItemId, $itemIds, $result, $tries ) {
-		$itemContent = $this->entityContentFactory->getFromId( $uniqueItemId );
+		$itemContent = $this->getContentFromId( $uniqueItemId );
 		$itemTouched = false;
 		$linkedSitePages = array();
 		$conflict = false;
 		$result = array_fill_keys( array_keys( $itemIds ), $uniqueItemId->getSerialization() ) + $result;
-		foreach ( $itemUnlinked->getSimpleSiteLinks() as $siteLink ) {
+		foreach ( $itemUnlinked->getSiteLinks() as $siteLink ) {
 			$siteId = $siteLink->getSiteId();
 			$pageName = $siteLink->getPageName();
 			try {
-				$existingSiteLink = $itemContent->getItem()->getSimpleSiteLink( $siteId );
+				$existingSiteLink = $itemContent->getItem()->getSiteLink( $siteId );
 			} catch ( OutOfBoundsException $e ) {
 				$existingSiteLink = null;
 			}
@@ -121,7 +129,7 @@ class WbLinkTitlesLocal extends Maintenance {
 				$result[$siteId] = '*';
 				continue;
 			}
-			$itemContent->getItem()->addSimpleSiteLink( $siteLink );
+			$itemContent->getItem()->addSiteLink( $siteLink );
 			$itemTouched = true;
 			$linkedSitePages[$siteId] = $pageName;
 		}
@@ -177,7 +185,7 @@ class WbLinkTitlesLocal extends Maintenance {
 					return null;
 				}
 			}
-			foreach ( $item->getSimpleSiteLinks() as $siteLink ) {
+			foreach ( $item->getSiteLinks() as $siteLink ) {
 				if ( isset( $siteLinks[$siteLink->getSiteId()] ) ) {
 					if ( $siteLinks[$siteLink->getSiteId()]->getPageName() !== $siteLink->getPageName() ) {
 						return null;
@@ -190,8 +198,8 @@ class WbLinkTitlesLocal extends Maintenance {
 				}
 			}
 		}
-		$claims = new Wikibase\Claims( $claims );
-		$item = Wikibase\Item::newEmpty();
+		$claims = new Wikibase\DataModel\Claim\Claims( $claims );
+		$item = Wikibase\DataModel\Entity\Item::newEmpty();
 		if ( $itemId === null ) {
 			$itemId = $items[$preferred]->getId();
 		}
@@ -201,7 +209,7 @@ class WbLinkTitlesLocal extends Maintenance {
 		$item->setAllAliases( $aliases );
 		$item->setClaims( $claims );
 		foreach ( $siteLinks as $siteLink ) {
-			$item->addSimpleSiteLink( $siteLink );
+			$item->addSiteLink( $siteLink );
 		}
 		return $item;
 	}
@@ -210,16 +218,20 @@ class WbLinkTitlesLocal extends Maintenance {
 		global $wgContLang;
 
 		$clearMessage = wfMessage( 'ts-wblinktitles-clear-summary' )->params( $targetItem->getId()->getSerialization() )->text();
-		$clearItem = Wikibase\Item::newEmpty();
+		$clearItem = Wikibase\DataModel\Entity\Item::newEmpty();
 		$maxRetries = intval( $this->getOption( 'max-retries', 3 ) );
 		$clearedPieces = array();
 		foreach ( $clearItemIds as $clearItemId ) {
 			$clearItem->setId( $clearItemId );
 			$itemContent = $this->entityContentFactory->newFromEntity( $clearItem );
 			for ( $i = 0; $i <= $maxRetries; $i++ ) {
-				$status = $itemContent->save( $clearMessage, null, $this->hasOption( 'bot' ) ? EDIT_SUPPRESS_RC : 0, false );
-				if ( $status->isGood() ) {
+				try {
+					$entityRevision = $this->entityStore->saveEntity(
+						$itemContent->getItem(), $clearMessage, new User(),
+						$this->hasOption( 'bot' ) ? EDIT_SUPPRESS_RC : 0, false
+					);
 					break;
+				} catch ( Wikibase\Lib\Store\StorageException $e ) {
 				}
 			}
 			$clearedPieces[] = wfMessage( 'ts-wblinktitles-merge-summary-item' )
@@ -234,20 +246,21 @@ class WbLinkTitlesLocal extends Maintenance {
 			$mergeMessage = wfMessage( 'ts-wblinktitles-merge-summary' )->params( $clearedText )->text();
 		}
 		$itemContent = $this->entityContentFactory->newFromEntity( $targetItem );
-		$baseRevId = $itemContent->getWikiPage()->getLatest();
+		$wikiPage = $this->entityStore->getWikiPageForEntity( $targetItem->getId() );
+		$baseRevId = $wikiPage->getLatest();
 		$break2 = false;
 		foreach ( array( $baseRevId, false ) as $effectiveBaseRevId ) {
 			for ( $i = 0; $i <= $maxRetries; $i++ ) {
-				$status = $itemContent->save(
-					$mergeMessage, null,
-					$this->hasOption( 'bot' ) ? EDIT_SUPPRESS_RC : 0,
-					$effectiveBaseRevId
-				);
-				if ( $status->isGood() ) {
+				try {
+					$entityRevision = $this->entityStore->saveEntity(
+						$itemContent->getItem(), $mergeMessage, new User(),
+						$this->hasOption( 'bot' ) ? EDIT_SUPPRESS_RC : 0,
+						$effectiveBaseRevId
+					);
 					$result['*'] = ( $effectiveBaseRevId === false ? 'merged-force' : 'merged' );
 					foreach ( $this->sitePages as $siteId => $pageName ) {
 						try {
-							$siteLink = $targetItem->getSimpleSiteLink( $siteId );
+							$siteLink = $targetItem->getSiteLink( $siteId );
 						} catch ( OutOfBoundsException $e ) {
 							continue;
 						}
@@ -257,6 +270,7 @@ class WbLinkTitlesLocal extends Maintenance {
 					}
 					$break2 = true;
 					break;
+				} catch ( Wikibase\Lib\Store\StorageException $e ) {
 				}
 			}
 			if ( $break2 ) {
@@ -271,7 +285,7 @@ class WbLinkTitlesLocal extends Maintenance {
 		$itemContents = array();
 		$items = array();
 		foreach ( $uniqueItemIds as $itemIdStr => $itemId ) {
-			$itemContent = $this->entityContentFactory->getFromId( $itemId );
+			$itemContent = $this->getContentFromId( $itemId );
 			$itemContents[$itemIdStr] = $itemContent;
 			$items[$itemIdStr] = $itemContent->getItem();
 		}
@@ -306,7 +320,7 @@ class WbLinkTitlesLocal extends Maintenance {
 		foreach ( $itemIds as $siteId => $itemId ) {
 			$result[$siteId] = $itemId->getSerialization();
 		}
-		foreach ( $itemUnlinked->getSimpleSiteLinks() as $siteLink ) {
+		foreach ( $itemUnlinked->getSiteLinks() as $siteLink ) {
 			$result[$siteLink->getSiteId()] = '*';
 		}
 		return array( true, $result );
@@ -317,16 +331,16 @@ class WbLinkTitlesLocal extends Maintenance {
 		$uniqueItemIds = array();
 		$uniqueItemId = false;
 		$siteLinkCache = Wikibase\StoreFactory::getStore()->newSiteLinkCache();
-		$itemUnlinked = Wikibase\Item::newEmpty();
+		$itemUnlinked = Wikibase\DataModel\Entity\Item::newEmpty();
 		$sitePages = $this->sitePages;
 		foreach ( $sitePages as $siteId => $pageName ) {
-			$siteLink = new Wikibase\DataModel\SimpleSiteLink( $siteId, $pageName );
+			$siteLink = new Wikibase\DataModel\SiteLink( $siteId, $pageName );
 			$itemId = $siteLinkCache->getEntityIdForSiteLink( $siteLink );
 			if ( $itemId ) {
 				$itemIds[$siteId] = $itemId;
 				$uniqueItemIds[$itemId->getSerialization()] = $itemId;
 			} else {
-				$itemUnlinked->addSimpleSiteLink( $siteLink );
+				$itemUnlinked->addSiteLink( $siteLink );
 			}
 		}
 
