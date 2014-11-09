@@ -79,8 +79,6 @@ class CleanupDuplicateArgs extends PageDomMaintenance {
 			$inner = $this->nodeToWikitext( $ext['inner'] );
 			if ( in_array( $name, array( 'ref', 'references' ) ) ) {
 				global $wgParser;
-				$parser = $wgParser->getFreshParser();
-				$parser->startExternalParse( $this->title, new ParserOptions, OT_PREPROCESS );
 				$dom = $wgParser->preprocessToDom( $inner );
 				if ( !( $dom instanceof PPNode_DOM ) ) {
 					$dom = RemoteUtils::preprocessXmlToDom( $dom->__toString() );
