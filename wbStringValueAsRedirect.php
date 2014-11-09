@@ -136,7 +136,7 @@ class WbStringValueAsRedirect extends Maintenance {
 			$this->output( "...\n" );
 			foreach ( $sites as $site ) {
 				try {
-					$siteLink = $item->getSimpleSiteLink( $site );
+					$siteLink = $item->getSiteLink( $site );
 				} catch ( OutOfBoundsException $e ) {
 					continue;
 				}
@@ -175,7 +175,7 @@ class WbStringValueAsRedirect extends Maintenance {
 		$this->replacement = $this->getOption( 'regex-replacement', '' );
 
 		$source = new ImportStreamSource( $handle );
-		$importer = new WikiImporter( $source );
+		$importer = new WikiImporter( $source, ConfigFactory::getDefaultInstance()->makeConfig( 'main' ) );
 
 		if ( $this->hasOption( 'debug' ) ) {
 			$importer->setDebug( true );
