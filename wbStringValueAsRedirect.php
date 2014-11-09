@@ -191,7 +191,7 @@ class WbStringValueAsRedirect extends Maintenance {
 
 	public function handleRevision( $rev ) {
 		$content = $rev->getContent();
-		if ( $content instanceof Wikibase\ItemContent ) {
+		if ( $content instanceof Wikibase\ItemContent && !$content->isRedirect() ) {
 			$this->executeItem( $content->getItem(), $this->property,
 				$this->sites, $this->replace, $this->replacement );
 		}
