@@ -6,6 +6,7 @@ class CleanupDuplicateArgs extends PageDomMaintenance {
 
 	public function __construct() {
 		parent::__construct();
+		$this->addOption( 'bot', 'Mark edits as "bot".', false );
 	}
 
 	public function executeTitleDom( $title, $dom, $rev, $data ) {
@@ -15,7 +16,8 @@ class CleanupDuplicateArgs extends PageDomMaintenance {
 		if ( $this->domModified ) {
 			$this->output( "saving..." );
 			if ( WikiPage::factory( $title )->doEdit( $text,
-				wfMessage( 'ts-cleanup-dupargs' )->text(), EDIT_MINOR,
+				wfMessage( 'ts-cleanup-dupargs' )->text(),
+				EDIT_MINOR | ( $this->hasOption( 'bot' ) ? EDIT_SUPPRESS_RC : 0 ),
 				$rev ? $rev->getId() : false
 			)->isOK() ) {
 				$this->output( " done.\n" );
