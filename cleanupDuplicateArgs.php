@@ -37,6 +37,7 @@ class CleanupDuplicateArgs extends PageDomMaintenance {
 			switch ( $childNode->getName() ) {
 			case 'title':
 				$pieces[] = $templateName = $this->nodeToWikitext( $childNode );
+				$templateName = trim( $templateName );
 				$templateTitle = Title::newFromText( $templateName, NS_TEMPLATE );
 				if ( !$templateTitle ) {
 					$this->output( "Skipping non-direct template call: $templateName\n" );

@@ -240,7 +240,7 @@ class CleanupILH_DOM extends PageDomMaintenance {
 			switch ( $childNode->getName() ) {
 			case 'title':
 				$templateName = $this->nodeToWikitext( $childNode );
-				$templateTitle = Title::newFromText( $templateName, NS_TEMPLATE );
+				$templateTitle = Title::newFromText( trim( $templateName ), NS_TEMPLATE );
 				if ( !$templateTitle ) {
 					continue;
 				}

@@ -78,7 +78,7 @@ class CleanupCiteDates extends PageDomMaintenance {
 			switch ( $childNode->getName() ) {
 			case 'title':
 				$pieces[] = $templateName = $this->nodeToWikitext( $childNode );
-				$templateTitle = Title::newFromText( $templateName, NS_TEMPLATE );
+				$templateTitle = Title::newFromText( trim( $templateName ), NS_TEMPLATE );
 				if ( !$templateTitle ) {
 					return;
 				}

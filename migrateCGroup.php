@@ -75,7 +75,7 @@ class MigrateCGroup extends PageDomMaintenance {
 			$childNode = $arrayNode->item( $i );
 			switch ( $childNode->getName() ) {
 			case 'title':
-				$templateName = $this->nodeToWikitext( $childNode );
+				$templateName = trim( $this->nodeToWikitext( $childNode ) );
 				$templateTitle = Title::newFromText( $templateName, NS_TEMPLATE );
 				if ( !$templateTitle ) {
 					continue;
