@@ -36,7 +36,28 @@ class CleanupDuplicateArgs extends PageDomMaintenance {
 			$childNode = $arrayNode->item( $i );
 			switch ( $childNode->getName() ) {
 			case 'title':
-				$pieces[] = $this->nodeToWikitext( $childNode );
+				$pieces[] = $templateName = $this->nodeToWikitext( $childNode );
+				$templateTitle = Title::newFromText( $templateName, NS_TEMPLATE );
+				if ( !$templateTitle ) {
+					$this->output( "Skipping non-direct template call: $templateName\n" );
+					return;
+				}
+				$colonPos = strpos( $templateName, ':' );
+				if ( $colonPos === false ) {
+					break;
+				}
+				$function = substr( $templateName, 0, $colonPos );
+				global $wgParser;
+				if ( isset( $wgParser->mFunctionSynonyms[1][$function] ) ) {
+					$this->output( "Skipping case-sensitive parser function: $function\n" );
+					return;
+				}
+				global $wgContLang;
+				$function = $wgContLang->lc( $function );
+				if ( isset( $wgParser->mFunctionSynonyms[0][$function] ) ) {
+					$this->output( "Skipping case-insensitive parser function: $function\n" );
+					return;
+				}
 				break;
 			case 'part':
 				$arg = $childNode->splitArg();
