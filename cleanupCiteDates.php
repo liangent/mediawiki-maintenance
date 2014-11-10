@@ -102,18 +102,21 @@ class CleanupCiteDates extends PageDomMaintenance {
 				if ( $arg['index'] ) {
 					$argkr = $argk = $arg['index'];
 					$argvr = $argv = $this->nodeToWikitext( $arg['value'] );
+					$argvls = $argvrs = '';
 				} else {
 					$argk = $this->nodeToWikitext( $arg['name'] );
 					$argkr = trim( $argk );
 					$argv = $this->nodeToWikitext( $arg['value'] );
 					$argvr = trim( $argv );
+					$argvls = substr( $argv, 0, strlen( $argv ) - strlen( ltrim( $argv ) ) );
+					$argvrs = rtrim( $argv ) !== $argv ? substr( $argv, strlen( rtrim( $argv ) ) - strlen( $argv ) ) : '';
 				}
 				if ( in_array( $argkr, static::$dateArguments ) ) {
 					$argvc = $this->cleanupDateString( $argvr );
 					if ( $argvc !== $argvr ) {
 						$this->domModified = true;
 						$this->output( "Replacing $argkr = $argvr -> $argvc\n" );
-						$argv = $argvc;
+						$argv = $argvls . $argvc . $argvrs;
 					}
 				}
 				$pieces[] = '|';
