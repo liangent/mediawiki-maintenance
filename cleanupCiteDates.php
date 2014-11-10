@@ -70,6 +70,52 @@ class CleanupCiteDates extends PageDomMaintenance {
 		return $date;
 	}
 
+	public function validateDateString( $date ) {
+		static $interpreter = null;
+		static $validate = null;
+		if ( !$validate ) {
+			global $wgScribuntoEngineConf, $wgScribuntoDefaultEngine;
+			$class = $wgScribuntoEngineConf[$wgScribuntoDefaultEngine]['class'];
+			$parser = new Parser();
+			$parser->startExternalParse( Title::newMainPage(), new ParserOptions(), Parser::OT_HTML );
+			$engine = new $class( $wgScribuntoEngineConf[$wgScribuntoDefaultEngine] + array( 'parser' => $parser ) );
+			$engine->setTitle( $parser->getTitle() );
+			$interpreter = $engine->getInterpreter();
+			$validator = $interpreter->loadString( <<<'LUA'
+-- From Module:Citation/CS1
+function is_set( var )
+	return not (var == nil or var == '');
+end
+
+local validation = require( 'Module:Citation/CS1/Date validation' )
+
+return function( date )
+	anchor_year, COinS_date, error_message = validation.dates( { date } )
+	return error_message == ''
+end
+LUA
+			, 'validator' );
+			$validate = $interpreter->callFunction( $validator );
+			$validate = $validate[0];
+		}
+		$ret = $interpreter->callFunction( $validate, $date );
+		return $ret[0];
+	}
+
+	public function tryDateString( $date ) {
+		if ( $this->validateDateString( $date ) ) {
+			return $date;
+		}
+		$cleaned = $this->cleanupDateString( $date );
+		if ( $cleaned !== $date # Short-circuit
+			&& $this->validateDateString( $cleaned )
+		) {
+			return $cleaned;
+		} else {
+			return $date;
+		}
+	}
+
 	public function executeTemplate( $node, $arrayNode ) {
 		$args = array();
 		$pieces = array( '{{' );
@@ -112,7 +158,7 @@ class CleanupCiteDates extends PageDomMaintenance {
 					$argvrs = rtrim( $argv ) !== $argv ? substr( $argv, strlen( rtrim( $argv ) ) - strlen( $argv ) ) : '';
 				}
 				if ( in_array( $argkr, static::$dateArguments ) ) {
-					$argvc = $this->cleanupDateString( $argvr );
+					$argvc = $this->tryDateString( $argvr );
 					if ( $argvc !== $argvr ) {
 						$this->domModified = true;
 						$this->output( "Replacing $argkr = $argvr -> $argvc\n" );
