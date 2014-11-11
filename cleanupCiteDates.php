@@ -78,10 +78,10 @@ class CleanupCiteDates extends PageDomMaintenance {
 		static $validate = null;
 		if ( !$validate ) {
 			global $wgScribuntoEngineConf, $wgScribuntoDefaultEngine;
-			$class = $wgScribuntoEngineConf[$wgScribuntoDefaultEngine]['class'];
 			$parser = new Parser();
 			$parser->startExternalParse( Title::newMainPage(), new ParserOptions(), Parser::OT_HTML );
-			$engine = new $class( $wgScribuntoEngineConf[$wgScribuntoDefaultEngine] + array( 'parser' => $parser ) );
+			$conf = $wgScribuntoEngineConf[$wgScribuntoDefaultEngine] + array( 'parser' => $parser );
+			$engine = new $conf['class']( $conf );
 			$engine->setTitle( $parser->getTitle() );
 			$interpreter = $engine->getInterpreter();
 			$validator = $interpreter->loadString( <<<'LUA'
