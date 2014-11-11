@@ -28,11 +28,9 @@ class PageDomMaintenanceExt extends PageDomMaintenance {
 		}
 		if ( isset( $ext['close'] ) ) {
 			$pieces[] = $this->nodeToWikitext( $ext['close'] );
-		} elseif ( isset( $ext['inner'] ) ) {
-			throw new MWException( 'Unexpected <ext> structure' );
-		} else {
+		} elseif ( !isset( $ext['inner'] ) ) {
 			$pieces[] = '/>';
-		}
+		} // Otherwise: unclosed <ext> tag
 		return implode( '', $pieces );
 	}
 }
