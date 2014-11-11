@@ -1,8 +1,8 @@
 <?php
 
-require_once( dirname( __FILE__ ) . '/PageDomMaintenance.php' );
+require_once( dirname( __FILE__ ) . '/PageDomMaintenanceExt.php' );
 
-class CollectTemplateUsage extends PageDomMaintenance {
+class CollectTemplateUsage extends PageDomMaintenanceExt {
 
 	public function __construct() {
 		parent::__construct();

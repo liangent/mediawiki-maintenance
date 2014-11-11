@@ -1,10 +1,8 @@
 <?php
-/**
- */
 
-require_once( dirname( __FILE__ ) . '/PageDomMaintenance.php' );
+require_once( dirname( __FILE__ ) . '/PageDomMaintenanceExt.php' );
 
-class CleanupILH_DOM extends PageDomMaintenance {
+class CleanupILH_DOM extends PageDomMaintenanceExt {
 
 	static $templates = null;
 	static $suffix = null;
