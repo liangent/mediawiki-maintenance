@@ -32,6 +32,11 @@ class WbLinkTitlesLocal extends Maintenance {
 		$result = array( '*' => '' );
 		$allSites = SiteSQLStore::newInstance();
 		$siteLinkGroups = Wikibase\Settings::get( 'siteLinkGroups' );
+		$specialSiteLinkGroups = Wikibase\Settings::get( 'specialSiteLinkGroups' );
+		if ( in_array( 'special', $siteLinkGroups ) ) {
+			$siteLinkGroups = array_diff( $siteLinkGroups, array( 'special' ) );
+			$siteLinkGroups = array_merge( $siteLinkGroups, $specialSiteLinkGroups );
+		}
 		foreach ( $sitePages as $siteId => &$pageName ) {
 			$site = $allSites->getSite( $siteId );
 			if ( !$site || !in_array( $site->getGroup(), $siteLinkGroups ) ) {
