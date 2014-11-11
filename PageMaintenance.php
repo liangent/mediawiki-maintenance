@@ -134,6 +134,13 @@ class PageMaintenance extends Maintenance {
 					'title' => 'tl_title',
 					'default' => NS_TEMPLATE,
 				),
+				'category' => array(
+					'table' => 'categorylinks',
+					'from' => 'cl_from',
+					'namespace' => NS_CATEGORY,
+					'title' => 'cl_to',
+					'default' => NS_CATEGORY,
+				),
 				'page' => array(
 					'table' => 'pagelinks',
 					'from' => 'pl_from',
@@ -158,12 +165,20 @@ class PageMaintenance extends Maintenance {
 			$tables[] = $linkInfo['table'];
 			$reverse = $this->hasOption( 'links-reverse' );
 			if ( $reverse ) {
-				$conds[] = 'page_namespace = ' . $linkInfo['namespace'];
+				if ( is_int( $linkInfo['namespace'] ) ) {
+					$conds['page_namespace'] = $linkInfo['namespace'];
+				} else {
+					$conds[] = 'page_namespace = ' . $linkInfo['namespace'];
+				}
 				$conds[] = 'page_title = ' . $linkInfo['title'];
 				$conds[$linkInfo['from']] = $target->getArticleID();
 			} else {
 				$conds[] = 'page_id = ' . $linkInfo['from'];
-				$conds[$linkInfo['namespace']] = $target->getNamespace();
+				if ( is_int( $linkInfo['namespace'] ) ) {
+					$conds[] = intval( $target->getNamespace() == $linkInfo['namespace'] );
+				} else {
+					$conds[$linkInfo['namespace']] = $target->getNamespace();
+				}
 				$conds[$linkInfo['title']] = $target->getDBKey();
 			}
 			$options['LIMIT'] = $this->mBatchSize;
