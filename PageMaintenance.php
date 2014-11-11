@@ -17,6 +17,7 @@ class PageMaintenance extends Maintenance {
 		$this->addOption( 'links', 'Process pages having links to some target. "template" or "page" only currently.' );
 		$this->addOption( 'links-page', 'Link target for --links= parameter.' );
 		$this->addOption( 'links-reverse', 'Use the other direction in --links= parameter.' );
+		$this->addOption( 'links-latest', 'Do page_latest chasing using this as cache key.' );
 		$this->setBatchSize( 50 );
 	}
 
@@ -55,6 +56,42 @@ class PageMaintenance extends Maintenance {
 	}
 
 	public function finalize() {
+	}
+
+	public function getLinksLatestCacheKey() {
+		if ( $this->hasOption( 'links-latest' ) ) {
+			return wfMemcKey( 'PageMaintenance', 'LinksLatest', $this->getOption( 'links-latest' ) );
+		} else {
+			return false;
+		}
+	}
+
+	public function getLinksLatest() {
+		$cacheKey = $this->getLinksLatestCacheKey();
+		if ( $cacheKey === false ) {
+			return false;
+		} else {
+			$cache = ObjectCache::getInstance( CACHE_DB );
+			$latest = $cache->get( $cacheKey );
+			return $latest === false ? 0 : $latest;
+		}
+	}
+
+	public function setLinksLatest( $latest ) {
+		$cacheKey = $this->getLinksLatestCacheKey();
+		if ( $cacheKey === false ) {
+			return false;
+		} else {
+			$cache = ObjectCache::getInstance( CACHE_DB );
+			$this->output( "Setting current links-latest revision to $latest..." );
+			$ret = $cache->set( $cacheKey, $latest );
+			if ( $ret ) {
+				$this->output( " done.\n" );
+			} else {
+				$this->output( " ERROR.\n" );
+			}
+			return $ret;
+		}
 	}
 
 	public function execute() {
@@ -116,8 +153,8 @@ class PageMaintenance extends Maintenance {
 			$res = $db->select( $tables, $fields, $conds, __METHOD__, $options, $join_conds );
 			$titles = TitleArray::newFromResult( $res );
 			$source = 'start';
-			$continue = function( $title ) use ( $db, $tables, $fields, $conds, $options, $join_conds ) {
-				$conds[-1] = 'page_id > ' . $title->getArticleID();
+			$continue = function( $title, $id, $latest ) use ( $db, $tables, $fields, $conds, $options, $join_conds ) {
+				$conds[-1] = 'page_id > ' . $id;
 				$res = $db->select( $tables, $fields, $conds, __METHOD__, $options, $join_conds );
 				return TitleArray::newFromResult( $res );
 			};
@@ -182,17 +219,31 @@ class PageMaintenance extends Maintenance {
 				$conds[$linkInfo['title']] = $target->getDBKey();
 			}
 			$options['LIMIT'] = $this->mBatchSize;
-			$options['ORDER BY'] = 'page_id';
+			$latest = $this->getLinksLatest();
+			if ( $latest !== false ) {
+				$options['ORDER BY'] = 'page_latest';
+				$continueMode = 'latest';
+				$conds[-1] = 'page_latest > ' . $latest;
+			} else {
+				$options['ORDER BY'] = 'page_id';
+				$continueMode = 'id';
+			}
 			$res = $db->select( $tables, $fields, $conds, __METHOD__, $options, $join_conds );
 			$titles = TitleArray::newFromResult( $res );
 			$source = 'links';
-			$continue = function( $title ) use ( $db, $tables, $fields, $conds, $options, $join_conds ) {
-				$conds[-1] = 'page_id > ' . $title->getArticleID();
+			$continue = function( $title, $id, $latest ) use ( $db, $tables, $fields, $conds, $options, $join_conds, $continueMode ) {
+				if ( $continueMode === 'latest' ) {
+					$conds[-1] = 'page_latest > ' . $latest;
+				} else {
+					$conds[-1] = 'page_id > ' . $id;
+				}
 				$res = $db->select( $tables, $fields, $conds, __METHOD__, $options, $join_conds );
 				return TitleArray::newFromResult( $res );
 			};
 			$prep = $reverse ? 'from' : 'to';
-			$this->output( "Working on pages having $linkType links $prep [[{$target->getPrefixedText()}]].\n" );
+			$this->output( "Working on pages having $linkType links $prep [[{$target->getPrefixedText()}]]"
+				. ( $latest === false ? '' : " from revision $latest" ) . ".\n"
+			);
 		}
 		if ( is_null( $titles ) ) {
 			$this->output( "Please specify one of page, category or random-count.\n" );
@@ -201,13 +252,18 @@ class PageMaintenance extends Maintenance {
 		$this->pageSource = $source;
 		while ( true ) {
 			$prevTitle = null;
+			$id = null;
+			$latest = null;
 			foreach ( $titles as $title ) {
-				$this->output( "[[{$title->getPrefixedText()}]]\n" );
+				$id = $title->getArticleID();
+				$latest = $title->getLatestRevID();
+				$this->output( "[[{$title->getPrefixedText()}]], id $id, revision $latest\n" );
 				$this->executeTitle( $title );
+				$this->setLinksLatest( $latest );
 				$prevTitle = $title;
 			}
 			if ( $continue && $prevTitle ) {
-				$titles = $continue( $prevTitle );
+				$titles = $continue( $prevTitle, $id, $latest );
 			} else {
 				break;
 			}
