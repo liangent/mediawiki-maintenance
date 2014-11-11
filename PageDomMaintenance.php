@@ -7,6 +7,7 @@ class PageDomMaintenance extends PageMaintenance {
 	public function __construct() {
 		parent::__construct();
 		$this->addOption( 'remote', 'Preprocess on remote server.' );
+		$this->addOption( 'inclusion', 'Handle "<noinclude>" and "<includeonly>" as if the text is being included.' );
 	}
 
 	public function nodeBracketedImplode( $start, $sep, $end, $delimName, $ext, $arrayNode ) {
@@ -59,6 +60,9 @@ class PageDomMaintenance extends PageMaintenance {
 
 	public function executeTitle( $title, $data = null ) {
 		if ( $this->hasOption( 'remote' ) ) {
+			if ( $this->hasOption( 'inclusion' ) ) {
+				$this->error( '--remote cannot work together with --inclusion', 1 );
+			}
 			$dom = RemoteUtils::preprocessTitleToDom( $title );
 			$rev = null;
 		} else {
@@ -72,7 +76,11 @@ class PageDomMaintenance extends PageMaintenance {
 				return;
 			}
 			$wgParser->startExternalParse( $title, new ParserOptions, OT_PREPROCESS );
-			$dom = $wgParser->preprocessToDom( $content->getNativeData() );
+			$flags = 0;
+			if ( $this->hasOption( 'inclusion' ) ) {
+				$flags |= Parser::PTD_FOR_INCLUSION;
+			}
+			$dom = $wgParser->preprocessToDom( $content->getNativeData(), $flags );
 			if ( !( $dom instanceof PPNode_DOM ) ) {
 				$dom = RemoteUtils::preprocessXmlToDom( $dom->__toString() );
 			}
