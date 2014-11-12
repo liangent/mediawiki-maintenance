@@ -160,7 +160,7 @@ LUA
 					$argvls = substr( $argv, 0, strlen( $argv ) - strlen( ltrim( $argv ) ) );
 					$argvrs = rtrim( $argv ) !== $argv ? substr( $argv, strlen( rtrim( $argv ) ) - strlen( $argv ) ) : '';
 				}
-				if ( in_array( $argkr, static::$dateArguments ) ) {
+				if ( in_array( $argkr, static::$dateArguments ) && $argvr !== '' ) {
 					$argvc = $this->tryDateString( $argvr );
 					if ( $argvc !== $argvr ) {
 						$this->domModified = true;
