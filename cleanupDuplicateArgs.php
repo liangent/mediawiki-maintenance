@@ -4,6 +4,12 @@ require_once( dirname( __FILE__ ) . '/PageDomMaintenanceExt.php' );
 
 class CleanupDuplicateArgs extends PageDomMaintenanceExt {
 
+	static $exemptedTemplates = array(
+		'Template:Chess diagram',
+		'Template:Xiangqi diagram',
+		'Template:Xiangqi-position',
+	);
+
 	public function __construct() {
 		parent::__construct();
 		$this->addOption( 'bot', 'Mark edits as "bot".', false );
@@ -43,22 +49,39 @@ class CleanupDuplicateArgs extends PageDomMaintenanceExt {
 					$this->output( "Skipping non-direct template call: $templateName\n" );
 					return;
 				}
+
 				$colonPos = strpos( $templateName, ':' );
-				if ( $colonPos === false ) {
-					break;
+				if ( $colonPos !== false ) {
+					$function = substr( $templateName, 0, $colonPos );
+					global $wgParser;
+					if ( isset( $wgParser->mFunctionSynonyms[1][$function] ) ) {
+						$this->output( "Skipping case-sensitive parser function: $function\n" );
+						return;
+					}
+					global $wgContLang;
+					$function = $wgContLang->lc( $function );
+					if ( isset( $wgParser->mFunctionSynonyms[0][$function] ) ) {
+						$this->output( "Skipping case-insensitive parser function: $function\n" );
+						return;
+					}
 				}
-				$function = substr( $templateName, 0, $colonPos );
-				global $wgParser;
-				if ( isset( $wgParser->mFunctionSynonyms[1][$function] ) ) {
-					$this->output( "Skipping case-sensitive parser function: $function\n" );
+
+				try {
+					$templatePage = WikiPage::factory( $templateTitle );
+				} catch ( MWException $e ) {
+					$templatePage = null;
+				}
+				if ( $templatePage ) {
+					$redirectTitle = $templatePage->getRedirectTarget();
+					if ( $redirectTitle ) {
+						$templateTitle = $redirectTitle;
+					}
+				}
+				if ( in_array( $templateTitle->getPrefixedText(), static::$exemptedTemplates ) ) {
+					$this->output( "Skipping exempted template: {$templateTitle->getPrefixedText()}\n" );
 					return;
 				}
-				global $wgContLang;
-				$function = $wgContLang->lc( $function );
-				if ( isset( $wgParser->mFunctionSynonyms[0][$function] ) ) {
-					$this->output( "Skipping case-insensitive parser function: $function\n" );
-					return;
-				}
+
 				break;
 			case 'part':
 				$arg = $childNode->splitArg();
