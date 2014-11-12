@@ -164,6 +164,7 @@ class WbLinkTitlesLocal extends Maintenance {
 		$siteLinks = array();
 		$claims = null;
 		$itemId = null;
+		$allSites = SiteSQLStore::newInstance();
 		foreach ( $items as $itemKey => $item ) {
 			if ( $item->getLabels() + $labels == $labels + $item->getLabels() ) {
 				$labels += $item->getLabels();
@@ -192,15 +193,49 @@ class WbLinkTitlesLocal extends Maintenance {
 			}
 			foreach ( $item->getSiteLinks() as $siteLink ) {
 				if ( isset( $siteLinks[$siteLink->getSiteId()] ) ) {
-					if ( $siteLinks[$siteLink->getSiteId()]->getPageName() !== $siteLink->getPageName() ) {
-						return null;
-					}
+					$storedSiteLink = $siteLinks[$siteLink->getSiteId()];
 				} else {
-					$siteLinks[$siteLink->getSiteId()] = $siteLink;
-					if ( $itemKey === '' ) {
-						$linkedSitePages[$siteLink->getSiteId()] = $siteLink->getPageName();
+					$storedSiteLink = new Wikibase\DataModel\SiteLink(
+						$siteLink->getSiteId(), '' # Make up an invalid site link
+					);
+				}
+				$pageName1 = $storedSiteLink->getPageName();
+				$pageName2 = $siteLink->getPageName();
+				if ( $pageName1 === $pageName2 ) {
+					$pageName = $pageName1; # The same
+				} else {
+					$site = $allSites->getSite( $siteLink->getSiteId() );
+					$pageName2 = $site->normalizePageName( $pageName2 );
+					if ( $pageName2 === false ) {
+						# The site link to append is not valid.
+						continue;
+					} else {
+						$pageName1 = $site->normalizePageName( $pageName1 );
+						if ( $pageName1 === false ) {
+							# The existing site link is not valid.
+							$siteLinks[$siteLink->getSiteId()] = $siteLink;
+							if ( $itemKey === '' ) {
+								$linkedSitePages[$siteLink->getSiteId()] = $siteLink->getPageName();
+							}
+							continue;
+						} else {
+							if ( $pageName1 === $pageName2 ) {
+								# They're actually the same.
+								$pageName = $pageName1;
+							} else {
+								# Can't merge.
+								return null;
+							}
+						}
+
 					}
 				}
+				$badges1 = $storedSiteLink->getBadges();
+				$badges2 = $siteLink->getBadges();
+				$badges = array_unique( array_merge( $badges1, $badges2 ) );
+				$siteLinks[$siteLink->getSiteId()] = new Wikibase\DataModel\SiteLink(
+					$siteLink->getSiteId(), $pageName, $badges
+				);
 			}
 		}
 		$claims = new Wikibase\DataModel\Claim\Claims( $claims );
