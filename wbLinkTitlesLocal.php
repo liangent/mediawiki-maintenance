@@ -85,7 +85,9 @@ class WbLinkTitlesLocal extends Maintenance {
 			$itemContent = $this->entityContentFactory->newFromEntity( $item );
 			$baseRevId = false;
 		}
-		$summary = wfMessage( 'ts-wblinktitles-summary' )->params( $this->getLinkedSitePagesText( $linkedSitePages ) )->text();
+		$summary = wfMessage( 'ts-wblinktitles-summary' )->params(
+			$this->getLinkedSitePagesText( $linkedSitePages ), count( $linkedSitePages )
+		)->text();
 		try {
 			$entityRevision = $this->entityStore->saveEntity(
 				$itemContent->getItem(), $summary, new User(),
@@ -294,12 +296,17 @@ class WbLinkTitlesLocal extends Maintenance {
 				->params( $clearItemId->getSerialization() )->plain();
 		}
 
-		$clearedText = $wgContLang->listToText( $clearedPieces );
 		if ( count( $linkedSitePages ) ) {
 			$mergeMessage = wfMessage( 'ts-wblinktitles-merge-link-summary' )
-				->params( $clearedText, $this->getLinkedSitePagesText( $linkedSitePages ) )->text();
+				->params(
+					$wgContLang->listToText( $clearedPieces ),
+					$this->getLinkedSitePagesText( $linkedSitePages ),
+					count( $clearedPieces ), count( $linkedSitePages )
+				)->text();
 		} else {
-			$mergeMessage = wfMessage( 'ts-wblinktitles-merge-summary' )->params( $clearedText )->text();
+			$mergeMessage = wfMessage( 'ts-wblinktitles-merge-summary' )->params(
+				$wgContLang->listToText( $clearedPieces ), count( $clearedPieces )
+			)->text();
 		}
 		$itemContent = $this->entityContentFactory->newFromEntity( $targetItem );
 		$wikiPage = $this->entityStore->getWikiPageForEntity( $targetItem->getId() );
