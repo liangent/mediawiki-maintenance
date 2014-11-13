@@ -87,7 +87,8 @@ class CleanupCiteDates extends PageDomMaintenanceExt {
 			global $wgScribuntoEngineConf, $wgScribuntoDefaultEngine;
 			$parser = new Parser();
 			$parser->startExternalParse( Title::newMainPage(), new ParserOptions(), Parser::OT_HTML );
-			$conf = $wgScribuntoEngineConf[$wgScribuntoDefaultEngine] + array( 'parser' => $parser );
+			$conf = array( 'cpuLimit' => PHP_INT_MAX, 'parser' => $parser );
+			$conf += $wgScribuntoEngineConf[$wgScribuntoDefaultEngine];
 			$engine = new $conf['class']( $conf );
 			$engine->setTitle( $parser->getTitle() );
 			$interpreter = $engine->getInterpreter();
