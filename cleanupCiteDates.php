@@ -16,7 +16,7 @@ class CleanupCiteDates extends PageDomMaintenanceExt {
 		'Template:Cite episode',
 		'Template:Cite map',
 		'Template:Cite podcast',
-		'Template:Cite pressrelease',
+		'Template:Cite press release',
 		'Template:Cite thesis',
 		'Template:Cite AV media notes',
 		'Template:Cite DVD notes',
