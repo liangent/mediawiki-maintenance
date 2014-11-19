@@ -12,7 +12,7 @@ class PageDomMaintenanceExt extends PageDomMaintenance {
 		if ( isset( $ext['inner'] ) ) {
 			$pieces[] = '>';
 			$inner = $this->nodeToWikitext( $ext['inner'] );
-			if ( in_array( $name, array( 'ref', 'references', 'poem', 'gallery', 'inputbox' ) ) ) {
+			if ( in_array( $name, array( 'ref', 'references', 'poem', 'gallery', 'inputbox', 'indicator' ) ) ) {
 				global $wgParser;
 				$flags = 0;
 				if ( $this->hasOption( 'inclusion' ) ) {
