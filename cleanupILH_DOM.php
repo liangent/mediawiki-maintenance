@@ -11,6 +11,7 @@ class CleanupILH_DOM extends PageDomMaintenanceExt {
 		parent::__construct();
 		$this->addOption( 'maxlag', 'Do not run if DB lags more than this time.' );
 		$this->titleKnown = array();
+		$this->wbLinkTitlesInvocations = array();
 	}
 
 	static function getOptionalColonForWikiLink( $title, $onTitle ) {
@@ -354,22 +355,28 @@ class CleanupILH_DOM extends PageDomMaintenanceExt {
 			if ( trim( $interwiki ) !== '' && $title->getInterwiki() === '' &&
 				$foreignDb !== false && $wmgUseWikibaseClient
 			) {
-				$cmd = wfShellWikiCmd( "$IP/maintenance/wbLinkTitlesLocal.php", array(
-					'--bot', '--wiki', Wikibase\Settings::get( 'repoDatabase' ),
-					'--report', wfMessage( 'ts-cleanupilh-wb-report' )->text(),
-					'--report-message', wfMessage( 'ts-cleanupilh-wb-report-message' )->params(
-						$wgDBname, $title->getFullText(), $this->title->getPrefixedText(),
-						$foreignDb, $interwiki
-					)->text(),
-					$wgDBname, $title->getFullText(), $foreignDb, $interwiki
-				) );
-				$retVal = 1;
-				$this->output( " (wb [[{$title->getFullText()}]] <=> $foreignDb: [[$interwiki]] ..." );
-				$data = trim( wfShellExec( $cmd, $retVal, array(), array( 'memory' => 0 ) ) );
-				if ( $data ) {
-					$this->output( " $data)" );
+				if ( isset( $this->wbLinkTitlesInvocations[$title->getFullText()][$foreignDb][$interwiki] ) ) {
+					$data = $this->wbLinkTitlesInvocations[$title->getFullText()][$foreignDb][$interwiki];
+					$this->output( " (wbc [[{$title->getFullText()}]] <=> $foreignDb: [[$interwiki]] = $data)" );
 				} else {
-					$this->output( ' ERROR)' );
+					$cmd = wfShellWikiCmd( "$IP/maintenance/wbLinkTitlesLocal.php", array(
+						'--bot', '--wiki', Wikibase\Settings::get( 'repoDatabase' ),
+						'--report', wfMessage( 'ts-cleanupilh-wb-report' )->text(),
+						'--report-message', wfMessage( 'ts-cleanupilh-wb-report-message' )->params(
+							$wgDBname, $title->getFullText(), $this->title->getPrefixedText(),
+							$foreignDb, $interwiki
+						)->text(),
+						$wgDBname, $title->getFullText(), $foreignDb, $interwiki
+					) );
+					$retVal = 1;
+					$this->output( " (wb [[{$title->getFullText()}]] <=> $foreignDb: [[$interwiki]] ..." );
+					$data = trim( wfShellExec( $cmd, $retVal, array(), array( 'memory' => 0 ) ) );
+					if ( $data ) {
+						$this->output( " $data)" );
+						$this->wbLinkTitlesInvocations[$title->getFullText()][$foreignDb][$interwiki] = $data;
+					} else {
+						$this->output( ' ERROR)' );
+					}
 				}
 			}
 			$replace = '[[' . self::getOptionalColonForWikiLink( $title, $this->title );
