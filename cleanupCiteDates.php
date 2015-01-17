@@ -71,14 +71,14 @@ class CleanupCiteDates extends PageDomMaintenanceExt {
 
 		$date = trim( html_entity_decode( preg_replace( '/&nbsp;/', ' ', $date ) ) );
 		$date = preg_replace( '/\[\[([^<>\[\]\|\{\}]+)\]\]/', '\1', $date );
-		$date = preg_replace( '/(查阅|查閱|出版)$/', '', $date );
+		$date = preg_replace( '/\s*(查阅|查閱|出版)$/', '', $date );
 
 		if ( $date !== $original && $this->validateDateString( $date ) ) {
 			return $date;
 		}
 
 		# The only place where prefix 0's are required is YYYY-MM-DD.
-		$date = preg_replace( '/\b0+/', '', $date );
+		$date = preg_replace( '/(?<!\d)0+(?=\d)/', '', $date );
 
 		if ( $date !== $original && $this->validateDateString( $date ) ) {
 			return $date;
