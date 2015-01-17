@@ -67,17 +67,51 @@ class CleanupCiteDates extends PageDomMaintenanceExt {
 	}
 
 	public function cleanupDateString( $date ) {
+		$original = $date;
+
+		$date = trim( html_entity_decode( preg_replace( '/&nbsp;/', ' ', $date ) ) );
+		$date = preg_replace( '/\[\[([^<>\[\]\|\{\}]+)\]\]/', '\1', $date );
+		$date = preg_replace( '/(查阅|查閱|出版)$/', '', $date );
+
+		if ( $date !== $original && $this->validateDateString( $date ) ) {
+			return $date;
+		}
+
+		# The only place where prefix 0's are required is YYYY-MM-DD.
+		$date = preg_replace( '/\b0+/', '', $date );
+
+		if ( $date !== $original && $this->validateDateString( $date ) ) {
+			return $date;
+		}
+
 		if ( preg_match( '/^(\d{4})\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*日$/', $date, $matches ) ) {
 			list( $_, $year, $month, $day ) = array_map( 'intval', $matches );
 			$date = "{$year}年{$month}月{$day}日";
-		} elseif ( preg_match( '/^(\d{4})\s*[\-\/\.]\s*(\d{1,2})\s*[\-\/\.]\s*(\d{1,2})$/', $date, $matches ) ) {
+		} elseif ( preg_match( '/^(\d{4})\s*[–\-\/\.]\s*(\d{1,2})\s*[–\-\/\.]\s*(\d{1,2})$/u', $date, $matches ) ) {
 			list( $_, $year, $month, $day ) = array_map( 'intval', $matches );
 			$date = sprintf( '%04d-%02d-%02d', $year, $month, $day );
 		} elseif ( preg_match( '/^(\d{4})\s*\.\s*(\d{1,2})$/', $date, $matches ) ) {
 			list( $_, $year, $month ) = array_map( 'intval', $matches );
 			$date = "{$year}年{$month}月";
 		}
-		return $date;
+
+		if ( $date !== $original && $this->validateDateString( $date ) ) {
+			return $date;
+		}
+
+		# Aggressive rules -- the resulting date will be revalidated anyway.
+
+		$date = preg_replace( '/, *| +/', ' ', $date );
+
+		if ( $date !== $original && $this->validateDateString( $date ) ) {
+			return $date;
+		}
+
+		$date = preg_replace( '/(?<=\d) (?=\d)/', ', ', $date );
+
+		if ( $date !== $original && $this->validateDateString( $date ) ) {
+			return $date;
+		}
 	}
 
 	public function validateDateString( $date ) {
@@ -118,9 +152,7 @@ LUA
 			return $date;
 		}
 		$cleaned = $this->cleanupDateString( $date );
-		if ( $cleaned !== $date # Short-circuit
-			&& $this->validateDateString( $cleaned )
-		) {
+		if ( $cleaned !== null ) {
 			return $cleaned;
 		} else {
 			return $date;
