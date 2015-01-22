@@ -186,15 +186,21 @@ class CleanupILH_DOM extends PageDomMaintenanceExt {
 	}
 
 	public function executeTitleDom( $title, $dom, $rev, $data ) {
+		global $wgContLang;
 		static $parserOutput = null;
 
 		$this->domModified = false;
+		$this->links = array();
 		$this->title = $title;
 		$text = $this->nodeToWikitext( $dom );
 		if ( $this->domModified ) {
 			$this->output( "\tsaving..." );
 			if ( WikiPage::factory( $title )->doEdit( $text,
-				wfMessage( 'ts-cleanup-ilh' )->text(), EDIT_MINOR,
+				wfMessage( 'ts-cleanup-ilh' )->params(
+					$wgContLang->listToText( array_map( function( $link ) {
+						return "[[$link]]";
+					}, array_keys( $this->links ) ) )
+				)->text(), EDIT_MINOR,
 				$rev ? $rev->getId() : false
 			)->isOK() ) {
 				$this->output( " done.\n" );
@@ -379,6 +385,7 @@ class CleanupILH_DOM extends PageDomMaintenanceExt {
 					}
 				}
 			}
+			$this->links[$title->getPrefixedText()] = true;
 			$replace = '[[' . self::getOptionalColonForWikiLink( $title, $this->title );
 			$nt = Title::newFromText( $desc );
 			$x = $desc;
