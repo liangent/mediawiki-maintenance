@@ -17,6 +17,7 @@ class TranslateVariants extends Maintenance {
 		$this->addOption( 'dry-run', 'Do not really publish translations', false );
 		$this->addOption( 'delete', 'Follow delete actions as well', false );
 		$this->addOption( 'table', 'Extra conversion table to load (subpage)', false, true );
+		$this->addOption( 'init', 'Initialization page (use -{H| }- markups for example)', false, true );
 	}
 
 	private function getTargets( $title, $lang ) {
@@ -82,6 +83,15 @@ class TranslateVariants extends Maintenance {
 
 	public function execute() {
 		global $wgContLang;
+
+		if ( $this->hasOption( 'init' )
+			&& ( $initTitle = Title::newFromText( $this->getOption( 'init' ) ) )
+			&& ( $initRevision = Revision::newFromTitle( $initTitle ) )
+			&& ( $initContent = $initRevision->getContent() )
+		) {
+			$this->output( "Using initialization page [[{$initTitle->getPrefixedText()}]]\n" );
+			$initContent->getParserOutput( $initTitle );
+		}
 
 		$lang = Language::factory( $this->getOption( 'lang' ) );
 		$this->output( "Translating messages in {$lang->getCode()}: " );
