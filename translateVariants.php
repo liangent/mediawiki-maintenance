@@ -79,10 +79,6 @@ class TranslateVariants extends Maintenance {
 			$converter->mTables[$var]->mergeArray( $cached );
 		}
 		$converter->postLoadTables();
-	}
-
-	public function execute() {
-		global $wgContLang;
 
 		if ( $this->hasOption( 'init' )
 			&& ( $initTitle = Title::newFromText( $this->getOption( 'init' ) ) )
@@ -92,6 +88,10 @@ class TranslateVariants extends Maintenance {
 			$this->output( "Using initialization page [[{$initTitle->getPrefixedText()}]]\n" );
 			$initContent->getParserOutput( $initTitle );
 		}
+	}
+
+	public function execute() {
+		global $wgContLang;
 
 		$lang = Language::factory( $this->getOption( 'lang' ) );
 		$this->output( "Translating messages in {$lang->getCode()}: " );
