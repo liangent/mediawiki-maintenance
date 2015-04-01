@@ -13,6 +13,7 @@ class CleanupDuplicateArgs extends PageDomMaintenanceExt {
 	public function __construct() {
 		parent::__construct();
 		$this->addOption( 'bot', 'Mark edits as "bot".', false );
+		$this->insideTemplateName = 0;
 	}
 
 	public function executeTitleDom( $title, $dom, $rev, $data ) {
@@ -42,7 +43,10 @@ class CleanupDuplicateArgs extends PageDomMaintenanceExt {
 			$childNode = $arrayNode->item( $i );
 			switch ( $childNode->getName() ) {
 			case 'title':
-				$pieces[] = $templateName = $this->nodeToWikitext( $childNode );
+				$pieces[] = $this->nodeToWikitext( $childNode );
+				$this->insideTemplateName++;
+				$templateName = $this->nodeToWikitext( $childNode );
+				$this->insideTemplateName--;
 				$templateName = trim( $templateName );
 				$templateTitle = Title::newFromText( $templateName, NS_TEMPLATE );
 				if ( !$templateTitle ) {
@@ -112,6 +116,14 @@ class CleanupDuplicateArgs extends PageDomMaintenanceExt {
 		}
 		$pieces[] = '}}';
 		return implode( '', $pieces );
+	}
+
+	public function executeComment( $node, $arrayNode ) {
+		if ( $this->insideTemplateName ) {
+			return '';
+		} else {
+			return null;
+		}
 	}
 }
 
