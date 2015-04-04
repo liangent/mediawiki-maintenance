@@ -11,6 +11,7 @@ class PopulateCite extends Maintenance {
 		$this->addOption( 'template', 'Template name', true, true );
 		$this->addOption( 'source', 'URL to trigger when a cite does not exist in source, $1 for placeholder', false, false );
 		$this->addOption( 'dry-run', 'Only list what to do', false );
+		$this->addOption( 'wikibase', 'Link cite pages on Wikibase repo', false );
 	}
 
 	public function execute() {
@@ -155,7 +156,23 @@ class PopulateCite extends Maintenance {
 			}
 			$status = $page->doEdit( $source, $summary, EDIT_NEW | EDIT_SUPPRESS_RC );
 			if ( $status->isOK() ) {
-				$this->output( " ok.\n" );
+				$this->output( ' ok.' );
+				if ( $this->hasOption( 'wikibase' ) ) {
+					$this->output( " wikibase ..." );
+					global $IP, $wgDBname;
+					$cmd = wfShellWikiCmd( "$IP/maintenance/wbLinkTitlesLocal.php", array(
+						'--bot', '--wiki', Wikibase\Settings::get( 'repoDatabase' ),
+						$wgDBname, $localtitle->getFullText(), 'enwiki', $sourcetitle
+					) );
+					$retVal = 1;
+					$data = trim( wfShellExec( $cmd, $retVal, array(), array( 'memory' => 0 ) ) );
+					if ( $data ) {
+						$this->output( " $data" );
+					} else {
+						$this->output( ' ERROR' );
+					}
+				}
+				$this->output( "\n" );
 			} else {
 				$this->output( " FAILED.\n" );
 			}
