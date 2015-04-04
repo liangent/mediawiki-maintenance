@@ -38,7 +38,7 @@ class PopulateCite extends Maintenance {
 				}
 				# Search for refs to work on and add them to $process.
 				$matches = array();
-				preg_match_all( $citeRe, $text, &$matches, PREG_PATTERN_ORDER );
+				preg_match_all( $citeRe, $text, $matches, PREG_PATTERN_ORDER );
 				$count = 0;
 				foreach ( $matches[1] as $cite ) {
 					$anchor = (string)substr( $wgParser->guessSectionNameFromWikiText( $cite ), 1 );
