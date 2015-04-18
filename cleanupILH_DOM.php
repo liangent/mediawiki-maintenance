@@ -164,7 +164,7 @@ class CleanupILH_DOM extends PageDomMaintenanceExt {
 			return;
 		}
 
-		if ( !$title->userCan( 'edit', $wgLabs->user ) ) {
+		if ( false ) if ( !$title->userCan( 'edit', $wgLabs->user ) ) {
 			# It's unlikely to be problematic, and usually we don't have the right
 			# to clean them up ( = edit them )...
 			$this->output( "\tprotected.\n" );
