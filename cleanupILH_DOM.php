@@ -42,7 +42,7 @@ class CleanupILH_DOM extends PageDomMaintenanceExt {
 	}
 
 	private function findAlias( $pageTitle, &$title, $lang, $interwiki, $local ) {
-		global $wgContLang, $wgLocalInterwiki, $IP;
+		global $wgContLang, $wgLocalInterwikis, $IP;
 
 		$fdbn = $this->langToDB( $lang );
 		if ( $fdbn === false ) {
@@ -75,7 +75,7 @@ class CleanupILH_DOM extends PageDomMaintenanceExt {
 					'page_namespace' => $data->namespace,
 					'page_title' => $data->dbkey,
 					'page_id = ll_from',
-					'll_lang' => $wgLocalInterwiki,
+					'll_lang' => $wgLocalInterwikis,
 				),
 				__METHOD__
 			);
@@ -99,7 +99,7 @@ class CleanupILH_DOM extends PageDomMaintenanceExt {
 							'rd_interwiki' => '',
 						), LIST_OR ),
 						'dstpage.page_id = ll_from',
-						'll_lang' => $wgLocalInterwiki,
+						'll_lang' => $wgLocalInterwikis,
 					),
 					__METHOD__
 				);
