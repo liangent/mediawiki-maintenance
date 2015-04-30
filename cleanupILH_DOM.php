@@ -14,6 +14,22 @@ class CleanupILH_DOM extends PageDomMaintenanceExt {
 		$this->wbLinkTitlesInvocations = array();
 	}
 
+	public function isTitleKnown( $title ) {
+		if ( $title ) {
+			if ( isset( $this->titleKnown[$title->getPrefixedDBKey()] ) ) {
+				return true;
+			} elseif ( $title->isKnown() ) {
+				$rev = $title->getFirstRevision();
+				if ( $rev ) {
+					return wfTimestamp( TS_UNIX ) - wfTimestamp( TS_UNIX, $rev->getTimestamp() ) > 86400 * 10;
+				} else { # Non-DB pages?
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
 	static function getOptionalColonForWikiLink( $title, $onTitle ) {
 		if ( in_array( $title->getNamespace(), array( NS_CATEGORY, NS_FILE ) ) ) {
 			return ':';
@@ -114,9 +130,7 @@ class CleanupILH_DOM extends PageDomMaintenanceExt {
 
 		$newTitle = Title::newFromText( $ll_title );
 		$wgContLang->findVariantLink( $ll_title, $newTitle, true );
-		if ( $newTitle && ( $newTitle->isKnown()
-			|| isset( $this->titleKnown[$newTitle->getPrefixedDBKey()] ) )
-		) {
+		if ( $this->isTitleKnown( $newTitle ) ) {
 			# Hooray we managed to find an alias!
 			$redirected = false;
 			if ( $title ) {
@@ -352,7 +366,7 @@ class CleanupILH_DOM extends PageDomMaintenanceExt {
 
 		$title = Title::newFromText( $local );
 		$wgContLang->findVariantLink( $local, $title, true );
-		$localKnown = $title && ( $title->isKnown() || isset( $this->titleKnown[$title->getPrefixedDBKey()] ) );
+		$localKnown = $this->isTitleKnown( $title );
 		if ( !$localKnown && trim( $lang ) !== '' && trim( $interwiki ) !== '' ) {
 			$localKnown = $this->findAlias( $this->title, $title, $lang, $interwiki, $local );
 		}
