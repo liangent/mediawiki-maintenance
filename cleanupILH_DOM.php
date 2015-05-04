@@ -147,7 +147,7 @@ class CleanupILH_DOM extends PageDomMaintenanceExt {
 					)->text(), EDIT_NEW
 				)->isOK() ) {
 					$this->output( ' done)' );
-					$this->titleKnown[$title->getPrefixedDBKey()] = true;
+					# $this->titleKnown[$title->getPrefixedDBKey()] = true;
 					$redirected = true;
 				} else {
 					$this->output( ' ERROR)' );
