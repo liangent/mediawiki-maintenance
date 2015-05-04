@@ -17,11 +17,15 @@ class CleanupILH_DOM extends PageDomMaintenanceExt {
 	public function isTitleKnown( $title ) {
 		if ( $title ) {
 			if ( isset( $this->titleKnown[$title->getPrefixedDBKey()] ) ) {
-				return true;
+				return null;
 			} elseif ( $title->isKnown() ) {
 				$rev = $title->getFirstRevision();
 				if ( $rev ) {
-					return wfTimestamp( TS_UNIX ) - wfTimestamp( TS_UNIX, $rev->getTimestamp() ) > 86400 * 10;
+					if ( wfTimestamp( TS_UNIX ) - wfTimestamp( TS_UNIX, $rev->getTimestamp() ) > 86400 * 10 ) {
+						return true;
+					} else {
+						return null;
+					}
 				} else { # Non-DB pages?
 					return true;
 				}
@@ -130,7 +134,8 @@ class CleanupILH_DOM extends PageDomMaintenanceExt {
 
 		$newTitle = Title::newFromText( $ll_title );
 		$wgContLang->findVariantLink( $ll_title, $newTitle, true );
-		if ( $this->isTitleKnown( $newTitle ) ) {
+		$newTitleKnown = $this->isTitleKnown( $newTitle );
+		if ( $newTitleKnown !== false ) {
 			# Hooray we managed to find an alias!
 			$redirected = false;
 			if ( $title ) {
@@ -147,17 +152,21 @@ class CleanupILH_DOM extends PageDomMaintenanceExt {
 					)->text(), EDIT_NEW
 				)->isOK() ) {
 					$this->output( ' done)' );
-					# $this->titleKnown[$title->getPrefixedDBKey()] = true;
+					$this->titleKnown[$title->getPrefixedDBKey()] = true;
 					$redirected = true;
 				} else {
 					$this->output( ' ERROR)' );
 				}
 			}
-		       	if ( !$redirected ) {
+			if ( $redirected ) {
+				return null; // the redirect must be a new page
+			} elseif ( $newTitleKnown ) {
 				$title = $newTitle;
 				$this->output( " (alias [[$local]] => [[{$title->getFullText()}]])" );
+				return true;
+			} else {
+				return null; // $newTitleKnown must be null
 			}
-			return true;
 		}
 
 		return false;
@@ -367,7 +376,7 @@ class CleanupILH_DOM extends PageDomMaintenanceExt {
 		$title = Title::newFromText( $local );
 		$wgContLang->findVariantLink( $local, $title, true );
 		$localKnown = $this->isTitleKnown( $title );
-		if ( !$localKnown && trim( $lang ) !== '' && trim( $interwiki ) !== '' ) {
+		if ( $localKnown === false && trim( $lang ) !== '' && trim( $interwiki ) !== '' ) {
 			$localKnown = $this->findAlias( $this->title, $title, $lang, $interwiki, $local );
 		}
 		if ( $localKnown ) {
