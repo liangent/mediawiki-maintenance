@@ -135,7 +135,7 @@ class CheckNewusermessageSignatures extends Maintenance {
 		if ( $newtext !== $text ) {
 			$this->output( 'editing...' );
 			$page = WikiPage::factory( $t );
-			$st = $page->doEdit( $newtext, wfMessage( 'ts-newusermessage-signatures-update' )->text() );
+			$st = $page->doEdit( $newtext, wfMessage( 'ts-newusermessage-signatures-update' )->text(), 0, $r->getId() );
 			if ( $st->isGood() ) {
 				$this->output( " ok.\n" );
 			} else {
