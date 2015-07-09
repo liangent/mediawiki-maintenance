@@ -120,7 +120,7 @@ class PopulateCite extends Maintenance {
 				$this->output( " exists locally.\n" );
 				continue;
 			}
-			$source = Http::get( 'http://en.wikipedia.org/w/index.php?title='
+			$source = Http::get( 'https://en.wikipedia.org/w/index.php?title='
 				. wfUrlencode( $sourcetitle ) . '&action=raw' );
 			if ( $source === false ) {
 				$this->output( " does not exist in source.\n" );
