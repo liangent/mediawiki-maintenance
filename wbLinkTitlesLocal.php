@@ -31,8 +31,8 @@ class WbLinkTitlesLocal extends Maintenance {
 
 		$result = array( '*' => '' );
 		$allSites = SiteSQLStore::newInstance();
-		$siteLinkGroups = Wikibase\Settings::get( 'siteLinkGroups' );
-		$specialSiteLinkGroups = Wikibase\Settings::get( 'specialSiteLinkGroups' );
+		$siteLinkGroups = Wikibase\Settings::singleton()->getSetting( 'siteLinkGroups' );
+		$specialSiteLinkGroups = Wikibase\Settings::singleton()->getSetting( 'specialSiteLinkGroups' );
 		if ( in_array( 'special', $siteLinkGroups ) ) {
 			$siteLinkGroups = array_diff( $siteLinkGroups, array( 'special' ) );
 			$siteLinkGroups = array_merge( $siteLinkGroups, $specialSiteLinkGroups );

@@ -161,7 +161,7 @@ class PopulateCite extends Maintenance {
 					$this->output( " wikibase ..." );
 					global $IP, $wgDBname;
 					$cmd = wfShellWikiCmd( "$IP/maintenance/wbLinkTitlesLocal.php", array(
-						'--bot', '--wiki', Wikibase\Settings::get( 'repoDatabase' ),
+						'--bot', '--wiki', Wikibase\Settings::singleton()->getSetting( 'repoDatabase' ),
 						$wgDBname, $localtitle->getFullText(), 'enwiki', $sourcetitle
 					) );
 					$retVal = 1;

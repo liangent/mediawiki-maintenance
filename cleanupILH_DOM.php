@@ -389,7 +389,7 @@ class CleanupILH_DOM extends PageDomMaintenanceExt {
 					$this->output( " (wbc [[{$title->getFullText()}]] <=> $foreignDb: [[$interwiki]] = $data)" );
 				} else {
 					$cmd = wfShellWikiCmd( "$IP/maintenance/wbLinkTitlesLocal.php", array(
-						'--bot', '--wiki', Wikibase\Settings::get( 'repoDatabase' ),
+						'--bot', '--wiki', Wikibase\Settings::singleton()->getSetting( 'repoDatabase' ),
 						'--report', wfMessage( 'ts-cleanupilh-wb-report' )->text(),
 						'--report-message', wfMessage( 'ts-cleanupilh-wb-report-message' )->params(
 							$wgDBname, $title->getFullText(), $this->title->getPrefixedText(),

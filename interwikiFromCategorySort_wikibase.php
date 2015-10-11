@@ -105,7 +105,7 @@ class InterwikiFromCategorySort_wikibase extends Maintenance {
 				. "curid = {$row->page_id})...\n" );
 			# Invoke the linker
 			$args = array(
-				'--bot', '--wiki', Wikibase\Settings::get( 'repoDatabase' ),
+				'--bot', '--wiki', Wikibase\Settings::singleton()->getSetting( 'repoDatabase' ),
 				'--report', wfMessage( 'ts-iwcatsort-wb-report' )->text(),
 				'--report-message', wfMessage( 'ts-iwcatsort-wb-report-message' )->params(
 					$wgDBname, $title->getFullText(),
