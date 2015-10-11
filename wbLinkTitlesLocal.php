@@ -393,12 +393,12 @@ class WbLinkTitlesLocal extends Maintenance {
 		$itemIds = array();
 		$uniqueItemIds = array();
 		$uniqueItemId = false;
-		$siteLinkCache = Wikibase\StoreFactory::getStore()->newSiteLinkCache();
+		$siteLinkCache = Wikibase\StoreFactory::getStore()->newSiteLinkStore();
 		$itemUnlinked = Wikibase\DataModel\Entity\Item::newEmpty();
 		$sitePages = $this->sitePages;
 		foreach ( $sitePages as $siteId => $pageName ) {
 			$siteLink = new Wikibase\DataModel\SiteLink( $siteId, $pageName );
-			$itemId = $siteLinkCache->getEntityIdForSiteLink( $siteLink );
+			$itemId = $siteLinkCache->getItemIdForSiteLink( $siteLink );
 			if ( $itemId ) {
 				$itemIds[$siteId] = $itemId;
 				$uniqueItemIds[$itemId->getSerialization()] = $itemId;
