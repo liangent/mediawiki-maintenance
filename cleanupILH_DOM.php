@@ -80,8 +80,8 @@ class CleanupILH_DOM extends PageDomMaintenanceExt {
 				$invoker = $interpreter->loadString( <<<"LUA"
 local module = require( 'Module:$maintClass' )
 
-return function()
-	return true
+return function( pageTitle, title, newTitle, db, interwiki, interwikiData, ll_title, rd )
+	return module.checkRedirect( pageTitle, title, newTitle, db, interwiki, interwikiData, ll_title, rd )
 end
 LUA
 				, 'invoker' );
@@ -94,7 +94,13 @@ LUA
 			}
 		}
 		try {
-			$ret = $interpreter->callFunction( $checkRedirect, 'TEST' );
+			$ret = $interpreter->callFunction( $checkRedirect,
+				$pageTitle->getPrefixedText(),
+				$title->getPrefixedText(),
+				$newTitle->getPrefixedText(),
+				$fdbn, $interwiki, (array)$interwikiData,
+				$ll_title, $rd ? (array)$rd : $rd
+			);
 			return $ret[0];
 		} catch ( Exception $e ) {
 			$this->output( ' (lua-exec-error)' );
