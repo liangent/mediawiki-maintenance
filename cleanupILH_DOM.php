@@ -104,7 +104,7 @@ LUA
 				$fdbn, $interwiki, (array)$interwikiData,
 				$ll_title, $rd ? (array)$rd : $rd
 			);
-			return $ret[0];
+			return isset( $ret[0] ) ? $ret[0] : true;
 		} catch ( Exception $e ) {
 			$this->output( ' (lua-exec-error)' );
 			return true;
