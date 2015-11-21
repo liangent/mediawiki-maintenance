@@ -70,7 +70,9 @@ class CleanupILH_DOM extends PageDomMaintenanceExt {
 		if ( !$checkRedirect ) {
 			global $wgScribuntoEngineConf, $wgScribuntoDefaultEngine;
 			$parser = new Parser();
-			$parser->startExternalParse( Title::newMainPage(), new ParserOptions(), Parser::OT_HTML );
+			$po = new ParserOptions();
+			$po->setExpensiveParserFunctionLimit( PHP_INT_MAX );
+			$parser->startExternalParse( Title::newMainPage(), $po, Parser::OT_HTML );
 			$conf = array( 'cpuLimit' => PHP_INT_MAX, 'parser' => $parser );
 			$conf += $wgScribuntoEngineConf[$wgScribuntoDefaultEngine];
 			$engine = new $conf['class']( $conf );
