@@ -113,11 +113,7 @@ class CleanupILH_DOM extends PageDomMaintenanceExt {
 						'rdpage.page_id = rd_from',
 						'dstpage.page_namespace = rd_namespace',
 						'dstpage.page_title = rd_title',
-						$fdbr->makeList( array(
-							# https://bugzilla.wikimedia.org/48853
-							$fdbr->makeList( array( 'rd_interwiki' => null ), LIST_OR ),
-							'rd_interwiki' => '',
-						), LIST_OR ),
+						'rd_interwiki' => array( '', null ),
 						'dstpage.page_id = ll_from',
 						'll_lang' => $wgLocalInterwikis,
 					),
