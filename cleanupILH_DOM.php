@@ -68,7 +68,7 @@ class CleanupILH_DOM extends PageDomMaintenanceExt {
 			return true;
 		}
 		if ( !$checkRedirect ) {
-			global $wgScribuntoEngineConf, $wgScribuntoDefaultEngine, $maintClass;
+			global $wgScribuntoEngineConf, $wgScribuntoDefaultEngine;
 			$parser = new Parser();
 			$parser->startExternalParse( Title::newMainPage(), new ParserOptions(), Parser::OT_HTML );
 			$conf = array( 'cpuLimit' => PHP_INT_MAX, 'parser' => $parser );
@@ -77,8 +77,9 @@ class CleanupILH_DOM extends PageDomMaintenanceExt {
 			$engine->setTitle( $parser->getTitle() );
 			$interpreter = $engine->getInterpreter();
 			try {
+				$module = wfMessage( 'ts-cleanup-ilh-module' )->text();
 				$invoker = $interpreter->loadString( <<<"LUA"
-local module = require( 'Module:$maintClass' )
+local module = require( '$module' )
 
 return function( pageTitle, title, newTitle, db, interwiki, interwikiData, ll_title, rd )
 	return module.checkRedirect( pageTitle, title, newTitle, db, interwiki, interwikiData, ll_title, rd )
