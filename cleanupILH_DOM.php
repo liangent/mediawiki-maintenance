@@ -100,12 +100,12 @@ class CleanupILH_DOM extends PageDomMaintenanceExt {
 				__METHOD__
 			);
 			if ( $ll_title === false ) {
-				$ll_title = $fdbr->selectField(
+				$fres = $fdbr->select(
 					array(
 						'redirect', 'langlinks',
 						'rdpage' => 'page', 'dstpage' => 'page',
 					),
-					'll_title',
+					array( 'll_title', 'rd_from', 'rd_namespace', 'rd_title', 'rd_fragment' ),
 					array(
 						'rdpage.page_namespace' => $data->namespace,
 						'rdpage.page_title' => $data->dbkey,
@@ -119,6 +119,21 @@ class CleanupILH_DOM extends PageDomMaintenanceExt {
 					),
 					__METHOD__
 				);
+				if ( $fres === false || !$fdbr->numRows( $fres ) ) {
+					$ll_title = false;
+					$rd = null;
+				} else {
+					$frow = $fdbr->fetchObject( $fres );
+					if ( $frow !== false ) {
+						$ll_title = $frow->ll_title;
+						$rd = $frow;
+					} else {
+						$ll_title = false;
+						$rd = null;
+					}
+				}
+			} else {
+				$rd = null;
 			}
 		} catch ( DBError $e ) {
 			$this->output( " (dbqerror $fdbn)" );
