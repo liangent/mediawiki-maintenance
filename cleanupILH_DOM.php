@@ -61,6 +61,10 @@ class CleanupILH_DOM extends PageDomMaintenanceExt {
 		}
 	}
 
+	public function checkRedirect( $pageTitle, $title, $newTitle, $fdbn, $interwiki, $interwikiData, $ll_title, $rd ) {
+		return true;
+	}
+
 	private function findAlias( $pageTitle, &$title, $lang, $interwiki, $local ) {
 		global $wgContLang, $wgLocalInterwikis, $IP;
 
@@ -150,23 +154,36 @@ class CleanupILH_DOM extends PageDomMaintenanceExt {
 			# Hooray we managed to find an alias!
 			$redirected = false;
 			if ( $title ) {
-				$this->output( " (rd [[{$title->getPrefixedText()}]] "
-					. "=> [[{$newTitle->getFullText()}]]" );
-				# Create redirect
-				$contentHandler = ContentHandler::getForTitle( $title );
-				$redirectContent = $contentHandler->makeRedirectContent( $newTitle );
-				if ( WikiPage::factory( $title )->doEditContent( $redirectContent,
-					wfMessage( 'ts-cleanup-ilh-redirect' )->params(
-						$newTitle->getFullText(),
-						$pageTitle->getPrefixedText(),
-						$lang, $interwiki, $pageTitle->getLatestRevID()
-					)->text(), EDIT_NEW
-				)->isOK() ) {
-					$this->output( ' done)' );
-					$this->titleKnown[$title->getPrefixedDBKey()] = true;
-					$redirected = true;
-				} else {
-					$this->output( ' ERROR)' );
+				$checkResult = $this->checkRedirect( $pageTitle, $title, $newTitle, $fdbn,
+					$interwiki, $data, $ll_title, $rd );
+				if ( is_string( $checkResult ) ) {
+					$checkTitle = Title::newFromText( $checkResult );
+					if ( $checkTitle ) {
+						$newTitle = $checkTitle;
+					}
+					$checkResult = true;
+				}
+				if ( $checkResult ) {
+					$this->output( " (rd [[{$title->getPrefixedText()}]] "
+						. "=> [[{$newTitle->getFullText()}]]" );
+					# Create redirect
+					$contentHandler = ContentHandler::getForTitle( $title );
+					$redirectContent = $contentHandler->makeRedirectContent( $newTitle );
+					if ( WikiPage::factory( $title )->doEditContent( $redirectContent,
+						wfMessage( 'ts-cleanup-ilh-redirect' )->params(
+							$newTitle->getFullText(),
+							$pageTitle->getPrefixedText(),
+							$lang, $interwiki, $pageTitle->getLatestRevID()
+						)->text(), EDIT_NEW
+					)->isOK() ) {
+						$this->output( ' done)' );
+						$this->titleKnown[$title->getPrefixedDBKey()] = true;
+						$redirected = true;
+					} else {
+						$this->output( ' ERROR)' );
+					}
+				} else if ( $checkResult === null ) {
+					return null;
 				}
 			}
 			if ( $redirected ) {
