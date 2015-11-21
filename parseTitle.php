@@ -15,6 +15,7 @@ class ParseTitle extends Maintenance {
 		if ( $title ) {
 			$data['interwiki'] = $title->getInterwiki();
 			$data['namespace'] = $title->getNamespace();
+			$data['fragment'] = $title->getFragment();
 			$data['dbkey'] = $title->getDBKey();
 		}
 
