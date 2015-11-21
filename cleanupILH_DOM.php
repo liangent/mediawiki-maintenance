@@ -62,7 +62,44 @@ class CleanupILH_DOM extends PageDomMaintenanceExt {
 	}
 
 	public function checkRedirect( $pageTitle, $title, $newTitle, $fdbn, $interwiki, $interwikiData, $ll_title, $rd ) {
-		return true;
+		static $interpreter = null;
+		static $checkRedirect = null;
+		if ( $checkRedirect === true ) {
+			return true;
+		}
+		if ( !$checkRedirect ) {
+			global $wgScribuntoEngineConf, $wgScribuntoDefaultEngine, $maintClass;
+			$parser = new Parser();
+			$parser->startExternalParse( Title::newMainPage(), new ParserOptions(), Parser::OT_HTML );
+			$conf = array( 'cpuLimit' => PHP_INT_MAX, 'parser' => $parser );
+			$conf += $wgScribuntoEngineConf[$wgScribuntoDefaultEngine];
+			$engine = new $conf['class']( $conf );
+			$engine->setTitle( $parser->getTitle() );
+			$interpreter = $engine->getInterpreter();
+			try {
+				$invoker = $interpreter->loadString( <<<"LUA"
+local module = require( 'Module:$maintClass' )
+
+return function()
+	return true
+end
+LUA
+				, 'invoker' );
+				$checkRedirect = $interpreter->callFunction( $invoker );
+				$checkRedirect = $checkRedirect[0];
+			} catch ( Exception $e ) {
+				$this->output( ' (lua-load-error)' );
+				$checkRedirect = true;
+				return true;
+			}
+		}
+		try {
+			$ret = $interpreter->callFunction( $checkRedirect, 'TEST' );
+			return $ret[0];
+		} catch ( Exception $e ) {
+			$this->output( ' (lua-exec-error)' );
+			return true;
+		}
 	}
 
 	private function findAlias( $pageTitle, &$title, $lang, $interwiki, $local ) {
