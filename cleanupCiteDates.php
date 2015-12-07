@@ -71,7 +71,7 @@ class CleanupCiteDates extends PageDomMaintenanceExt {
 
 		$date = trim( html_entity_decode( preg_replace( '/&nbsp;/', ' ', $date ) ) );
 		$date = preg_replace( '/\[\[([^<>\[\]\|\{\}]+)\]\]/', '\1', $date );
-		$date = preg_replace( '/\s*(查阅|查閱|出版)$/', '', $date );
+		$date = preg_replace( '/^(于|於)\s*|\s*(查阅|查閱|出版)$/', '', $date );
 
 		if ( $date !== $original && $this->validateDateString( $date ) ) {
 			return $date;
