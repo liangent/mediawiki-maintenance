@@ -147,7 +147,7 @@ end
 local validation = require( 'Module:Citation/CS1/Date validation' )
 
 return function( date )
-	anchor_year, COinS_date, error_message = validation.dates( { date } )
+	anchor_year, error_message = validation.dates( { date } )
 	return error_message == ''
 end
 LUA
