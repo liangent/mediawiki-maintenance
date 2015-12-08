@@ -142,9 +142,9 @@ class CleanupCiteYMD extends PageDomMaintenanceExt {
 				break;
 			}
 		}
-		$year = str_replace( '年', '', $year );
-		$month = str_replace( '月', '', $month );
-		$day = str_replace( '日', '', $day );
+		$year = preg_replace( '/年$/', '', $year );
+		$month = preg_replace( '/月$/', '', $month );
+		$day = preg_replace( '/日$/', '', $day );
 		# Use dot as separator, so it can be further cleaned up by cleanupCiteDates.php without confusion.
 		if ( $year !== '' ) {
 			if ( $month !== '' ) {
