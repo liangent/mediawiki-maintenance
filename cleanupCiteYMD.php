@@ -57,48 +57,6 @@ class CleanupCiteYMD extends PageDomMaintenanceExt {
 		'Oct' => 10,
 		'Nov' => 11,
 		'Dec' => 12,
-		'1' => 1,
-		'2' => 2,
-		'3' => 3,
-		'4' => 4,
-		'5' => 5,
-		'6' => 6,
-		'7' => 7,
-		'8' => 8,
-		'9' => 9,
-		'01' => 1,
-		'02' => 2,
-		'03' => 3,
-		'04' => 4,
-		'05' => 5,
-		'06' => 6,
-		'07' => 7,
-		'08' => 8,
-		'09' => 9,
-		'10' => 10,
-		'11' => 11,
-		'12' => 12,
-		'1月' => 1,
-		'2月' => 2,
-		'3月' => 3,
-		'4月' => 4,
-		'5月' => 5,
-		'6月' => 6,
-		'7月' => 7,
-		'8月' => 8,
-		'9月' => 9,
-		'01月' => 1,
-		'02月' => 2,
-		'03月' => 3,
-		'04月' => 4,
-		'05月' => 5,
-		'06月' => 6,
-		'07月' => 7,
-		'08月' => 8,
-		'09月' => 9,
-		'10月' => 10,
-		'11月' => 11,
-		'12月' => 12,
 	);
 
 	public function __construct() {
@@ -184,6 +142,9 @@ class CleanupCiteYMD extends PageDomMaintenanceExt {
 				break;
 			}
 		}
+		$year = str_replace( '年', '', $year );
+		$month = str_replace( '月', '', $month );
+		$day = str_replace( '日', '', $day );
 		# Use dot as separator, so it can be further cleaned up by cleanupCiteDates.php without confusion.
 		if ( $year !== '' ) {
 			if ( $month !== '' ) {
