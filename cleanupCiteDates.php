@@ -94,7 +94,10 @@ class CleanupCiteDates extends PageDomMaintenanceExt {
 			# ProveIt and Yhz1221-bot
 			list( $_, $month, $day, $year ) = array_map( 'intval', $matches );
 			$date = sprintf( '%04d-%02d-%02d', $year, $month, $day );
-		} elseif ( preg_match( '/^(\d{4})\s*\.\s*(\d{1,2})$/', $date, $matches ) ) {
+		} elseif ( preg_match( '/^(\d{4})\s*(?:\.|年)\s*(\d{1,2})\s*(?:\.|月)\s*(\d{1,2})\s*(?:日)?$/', $date, $matches ) ) {
+			list( $_, $year, $month, $day ) = array_map( 'intval', $matches );
+			$date = "{$year}年{$month}月{$day}日";
+		} elseif ( preg_match( '/^(\d{4})\s*(?:\.|年)\s*(\d{1,2})\s*(?:月)?$/', $date, $matches ) ) {
 			list( $_, $year, $month ) = array_map( 'intval', $matches );
 			$date = "{$year}年{$month}月";
 		}
