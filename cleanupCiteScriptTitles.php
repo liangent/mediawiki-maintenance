@@ -107,17 +107,18 @@ class CleanupCiteScriptTitles extends PageDomMaintenanceExt {
 				} else {
 					$argk = $this->nodeToWikitext( $arg['name'] );
 					$argkr = trim( $argk );
-					if ( $isCite && $argkr == 'title' ) {
+					if ( $isCite && in_array( $argkr, array( 'title', 'chapter' ) ) ) {
 						$this->replaced[++$this->insideTitle] = null;
 					}
 					$argv = $this->nodeToWikitext( $arg['value'] );
 					$argvr = trim( $argv );
 					$argvls = substr( $argv, 0, strlen( $argv ) - strlen( ltrim( $argv ) ) );
 					$argvrs = rtrim( $argv ) !== $argv ? substr( $argv, strlen( rtrim( $argv ) ) - strlen( $argv ) ) : '';
-					if ( $isCite && $argkr == 'title' ) {
+					if ( $isCite && in_array( $argkr, array( 'title', 'chapter' ) ) ) {
 						if ( $this->replaced[$this->insideTitle--] !== null ) {
 							$this->domModified = true;
 							$argk = str_replace( 'title', 'script-title', $argk );
+							$argk = str_replace( 'chapter', 'script-chapter', $argk );
 							$script = $this->replaced[$this->insideTitle + 1];
 							if ( $script !== '' ) {
 								$script .= ':';
