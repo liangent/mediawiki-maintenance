@@ -130,13 +130,11 @@ class CleanupCiteYMD extends PageDomMaintenanceExt {
 					$argvrs = rtrim( $argv ) !== $argv ? substr( $argv, strlen( rtrim( $argv ) ) - strlen( $argv ) ) : '';
 				}
 				if ( in_array( $argkr, array( 'year', 'month', 'day' ) ) ) {
-					$this->domModified = true;
 					$$argkr = $argvr;
 					break;
 				}
 				if ( $argkr == 'date' ) {
-					$this->domModified = true;
-					$dates[] = $argvr;
+					$dates[] = array( $argk, $argv );
 					break;
 				}
 				$pieces[] = '|';
@@ -151,26 +149,27 @@ class CleanupCiteYMD extends PageDomMaintenanceExt {
 		$year = preg_replace( '/年$/', '', $year );
 		$month = preg_replace( '/月$/', '', $month );
 		$day = preg_replace( '/日$/', '', $day );
-		# Use dot as separator, so it can be further cleaned up by cleanupCiteDates.php without confusion.
-		if ( $year !== '' ) {
-			if ( $month !== '' ) {
-				if ( isset( self::$monthMap[$month] ) ) {
-					$month = self::$monthMap[$month];
-				}
-				if ( $day !== '' ) {
-					$pieces[] = '|date=' . $year . '.' . $month . '.' . $day;
-				} else {
-					$pieces[] = '|date=' . $year . '.' . $month;
-				}
-			} else {
-				$pieces[] = '|date=' . $year;
+		# If there is a single year it still works. Since it's not broken and might be used
+		# in special cases, do not clean it up for now. See [[en:Template:Cite web#Date]].
+		if ( $year !== '' && $month !== '' ) {
+			if ( isset( self::$monthMap[$month] ) ) {
+				$month = self::$monthMap[$month];
 			}
+			# Use dot as separator, so it can be further cleaned up by cleanupCiteDates.php without confusion.
+			if ( $day !== '' ) {
+				$pieces[] = "|date=$year.$month.$day";
+			} else {
+				$pieces[] = "|date=$year.$month";
+			}
+			# A new date is inserted. Move all existing dates after it so they have a chance to override the new one.
+			foreach ( $dates as $date ) {
+				list( $argk, $argv ) = $date;
+				$pieces[] = "|$argk=$argv";
+			}
+			$pieces[] = '}}';
+			$this->domModified = true;
+			return implode( '', $pieces );
 		}
-		foreach ( $dates as $date ) {
-			$pieces[] = '|date=' . $date;
-		}
-		$pieces[] = '}}';
-		return implode( '', $pieces );
 	}
 }
 
