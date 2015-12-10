@@ -134,7 +134,9 @@ class CleanupCiteYMD extends PageDomMaintenanceExt {
 					break;
 				}
 				if ( $argkr == 'date' ) {
-					$dates[] = array( $argk, $argv );
+					if ( $argvr !== '' ) {
+						$dates[] = array( $argk, $argv );
+					}
 					break;
 				}
 				$pieces[] = '|';
