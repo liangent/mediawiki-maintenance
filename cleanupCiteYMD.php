@@ -90,6 +90,7 @@ class CleanupCiteYMD extends PageDomMaintenanceExt {
 		$year = '';
 		$month = '';
 		$day = '';
+		$dates = array();
 		for ( $i = 0; $i < $arrayNode->getLength(); $i++ ) {
 			$childNode = $arrayNode->item( $i );
 			switch ( $childNode->getName() ) {
@@ -133,6 +134,11 @@ class CleanupCiteYMD extends PageDomMaintenanceExt {
 					$$argkr = $argvr;
 					break;
 				}
+				if ( $argkr == 'date' ) {
+					$this->domModified = true;
+					$dates[] = $argvr;
+					break;
+				}
 				$pieces[] = '|';
 				if ( !$arg['index'] ) {
 					$pieces[] = $argk;
@@ -159,6 +165,9 @@ class CleanupCiteYMD extends PageDomMaintenanceExt {
 			} else {
 				$pieces[] = '|date=' . $year;
 			}
+		}
+		foreach ( $dates as $date ) {
+			$pieces[] = '|date=' . $date;
 		}
 		$pieces[] = '}}';
 		return implode( '', $pieces );
