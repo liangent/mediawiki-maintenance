@@ -31,37 +31,25 @@ class CleanupCiteYMD extends PageDomMaintenanceExt {
 		'Template:Cite web',
 	);
 
-	static $monthMap = array(
-		'January' => 1,
-		'February' => 2,
-		'March' => 3,
-		'April' => 4,
-		'May' => 5,
-		'June' => 6,
-		'July' => 7,
-		'August' => 8,
-		'September' => 9,
-		'October' => 10,
-		'November' => 11,
-		'December' => 12,
-		'Jan' => 1,
-		'Feb' => 2,
-		'Mar' => 3,
-		'Apr' => 4,
-		'May' => 5,
-		'Jun' => 6,
-		'Jul' => 7,
-		'Aug' => 8,
-		'Sept' => 9,
-		'Sep' => 9,
-		'Oct' => 10,
-		'Nov' => 11,
-		'Dec' => 12,
-	);
-
 	public function __construct() {
 		parent::__construct();
 		$this->addOption( 'bot', 'Mark edits as "bot".', false );
+		require_once( dirname( __FILE__ ) . '/cleanupCiteDates.php' );
+		$this->cleanupCiteDates = new CleanupCiteDates();
+	}
+
+	public function firstValidDate( $dates ) {
+		foreach ( $dates as $date ) {
+			if ( $this->cleanupCiteDates->validateDateString( $date ) ) {
+				return $date;
+			}
+		}
+		foreach ( $dates as $date ) {
+			$cleaned = $this->cleanupCiteDates->cleanupDateString( $date );
+			if ( $cleaned !== null ) {
+				return $cleaned;
+			}
+		}
 	}
 
 	public function executeTitleDom( $title, $dom, $rev, $data ) {
@@ -148,39 +136,31 @@ class CleanupCiteYMD extends PageDomMaintenanceExt {
 				break;
 			}
 		}
-		$year = preg_replace( '/年$/', '', $year );
-		$month = preg_replace( '/月$/', '', $month );
-		$day = preg_replace( '/日$/', '', $day );
 		# If there is a single year it still works. Since it's not broken and might be used
 		# in special cases, do not clean it up for now. See [[en:Template:Cite web#Date]].
 		if ( $year !== '' && $month !== '' ) {
-			foreach ( self::$monthMap as $monthName => $monthValue ) {
-				if ( strpos( strtolower( $month ), strtolower( $monthName ) ) !== false ) {
-					$monthRest = trim( str_replace( strtolower( $monthName ), ' ', strtolower( $month ) ) );
-					if ( $monthRest == '' ) {
-						# "July" style
-						$month = $monthValue;
-						break;
-					}
-					if ( ctype_digit( $monthRest ) ) {
-						# "July 4" style
-						$dayValue = intval( $monthRest );
-						if ( $day === '' ) {
-							$month = $monthValue;
-							$day = strval( $dayValue );
-							break;
-						}
-					}
-					# Bonus month, possibly "Jan-Feb", or "July 4" with another |day=, skip this
-					return;
-				}
-			}
-			# Use dot as separator, so it can be further cleaned up by cleanupCiteDates.php without confusion.
 			if ( $day !== '' ) {
-				$pieces[] = "|date=$year.$month.$day";
+				$date = $this->firstValidDate( array(
+					"$year.$month.$day", # This can never be valid but use it as the first one in the fixing loop
+					"$year-$month-$day",
+					"{$year}年{$month}月{$day}日", # Not so useful; would be caught by the above one
+					"$month $day, $year",
+					"$day $month, $year", # Removing comma is one of fixing attempts
+					"$year $month $day", # |year=2010年|month=1月|day=1日
+				) );
 			} else {
-				$pieces[] = "|date=$year.$month";
+				$date = $this->firstValidDate( array(
+					"$year.$month", # This can never be valid but use it as the first one in the fixing loop
+					"{$year}年{$month}月",
+					"$month, $year", # Removing comma is one of fixing attempts
+					"$year $month", # |year=2010年|month=1月
+				) );
 			}
+			if ( $date === null ) {
+				# Couldn't find a valid combined date string; skip it.
+				return;
+			}
+			$pieces[] = "|date=$date";
 			# A new date is inserted. Move all existing dates after it so they have a chance to override the new one.
 			foreach ( $dates as $date ) {
 				list( $argk, $argv ) = $date;
