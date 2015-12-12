@@ -52,8 +52,8 @@ class CleanupCiteYMD extends PageDomMaintenanceExt {
 		'Jun' => 6,
 		'Jul' => 7,
 		'Aug' => 8,
-		'Sep' => 9,
 		'Sept' => 9,
+		'Sep' => 9,
 		'Oct' => 10,
 		'Nov' => 11,
 		'Dec' => 12,
@@ -154,8 +154,26 @@ class CleanupCiteYMD extends PageDomMaintenanceExt {
 		# If there is a single year it still works. Since it's not broken and might be used
 		# in special cases, do not clean it up for now. See [[en:Template:Cite web#Date]].
 		if ( $year !== '' && $month !== '' ) {
-			if ( isset( self::$monthMap[$month] ) ) {
-				$month = self::$monthMap[$month];
+			foreach ( self::$monthMap as $monthName => $monthValue ) {
+				if ( strpos( strtolower( $month ), strtolower( $monthName ) ) !== false ) {
+					$monthRest = trim( str_replace( strtolower( $monthName ), ' ', strtolower( $month ) ) );
+					if ( $monthRest == '' ) {
+						# "July" style
+						$month = $monthValue;
+						break;
+					}
+					if ( ctype_digit( $monthRest ) ) {
+						# "July 4" style
+						$dayValue = intval( $monthRest );
+						if ( $day === '' ) {
+							$month = $monthValue;
+							$day = strval( $dayValue );
+							break;
+						}
+					}
+					# Bonus month, possibly "Jan-Feb", or "July 4" with another |day=, skip this
+					return;
+				}
 			}
 			# Use dot as separator, so it can be further cleaned up by cleanupCiteDates.php without confusion.
 			if ( $day !== '' ) {
