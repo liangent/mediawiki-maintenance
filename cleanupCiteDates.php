@@ -47,13 +47,21 @@ class CleanupCiteDates extends PageDomMaintenanceExt {
 	}
 
 	public function executeTitleDom( $title, $dom, $rev, $data ) {
+		global $wgContLang;
 		$this->domModified = false;
+		$this->cleaned = array();
 		$this->title = $title;
 		$text = $this->nodeToWikitext( $dom );
 		if ( $this->domModified ) {
+			$cleanedArray = array();
+			foreach ( $this->cleaned as $from => $to ) {
+				$cleanedArray[] = $from . $wgContLang->getArrow() . $to;
+			}
 			$this->output( "saving..." );
 			if ( WikiPage::factory( $title )->doEdit( $text,
-				wfMessage( 'ts-cleanup-citedates' )->text(),
+				wfMessage( 'ts-cleanup-citedates' )->params(
+					$wgContLang->listToText( $cleanedArray )
+				)->text(),
 				EDIT_MINOR | ( $this->hasOption( 'bot' ) ? EDIT_SUPPRESS_RC : 0 ),
 				$rev ? $rev->getId() : false
 			)->isOK() ) {
@@ -172,8 +180,12 @@ LUA
 		if ( $this->validateDateString( $date ) ) {
 			return $date;
 		}
+		if ( isset( $this->cleaned[$date] ) ) {
+			return $this->cleaned[$date];
+		}
 		$cleaned = $this->cleanupDateString( $date );
 		if ( $cleaned !== null ) {
+			$this->cleaned[$date] = $cleaned;
 			return $cleaned;
 		} else {
 			return $date;
