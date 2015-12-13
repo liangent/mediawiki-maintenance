@@ -10,6 +10,8 @@ class MakeRedirect extends Maintenance {
 		$this->addOption( 'bot', 'Mark edits as bot', false );
 		$this->addOption( 'no-edit', 'Do not edit existing pages', false );
 		$this->addOption( 'no-self', 'Do not create self redirects', false );
+		$this->addOption( 'text', 'Extra text to add, if supported', false );
+		$this->addOption( 'summary', 'Edit summary to use', false );
 	}
 
 	public function doMake( $fromText, $toText ) {
@@ -35,8 +37,9 @@ class MakeRedirect extends Maintenance {
 			}
 		}
 		$contentHandler = ContentHandler::getForTitle( $fromTitle );
-		$redirectContent = $contentHandler->makeRedirectContent( $toTitle );
-		if ( $fromWikiPage->doEditContent( $redirectContent, '',
+		$redirectContent = $contentHandler->makeRedirectContent( $toTitle, $this->getOption( 'text', '' ) );
+		if ( $fromWikiPage->doEditContent( $redirectContent,
+			$this->getOption( 'summary', '' ),
 			$this->hasOption( 'bot' ) ? EDIT_SUPPRESS_RC : 0
 		)->isOK() ) {
 			return array( 0, 'success' );
