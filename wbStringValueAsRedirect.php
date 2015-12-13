@@ -17,6 +17,9 @@ class WbStringValueAsRedirect extends Maintenance {
 		$this->addOption( 'debug', 'Output extra verbose debug information', false );
 		$this->addOption( 'no-edit', 'Do not edit existing pages', false );
 		$this->addOption( 'no-self', 'Do not create self redirects', false );
+		$this->addOption( 'text', 'Extra text to add, if supported', false );
+		$this->addOption( 'summary', 'Edit summary to use', false );
+		$this->addOption( 'force', 'Force a re-edit when no change of redirect target is made', false );
 		$this->setBatchSize( -1 );
 		$this->batchRedirect = array();
 	}
@@ -27,7 +30,10 @@ class WbStringValueAsRedirect extends Maintenance {
 			$basicArgs = array_merge(
 				$this->hasOption( 'bot' ) ? array( '--bot' ) : array(),
 				$this->hasOption( 'no-edit' ) ? array( '--no-edit' ) : array(),
-				$this->hasOption( 'no-self' ) ? array( '--no-self' ) : array()
+				$this->hasOption( 'no-self' ) ? array( '--no-self' ) : array(),
+				$this->hasOption( 'text' ) ? array( '--text=' . $this->getOption( 'text' ) ) : array(),
+				$this->hasOption( 'summary' ) ? array( '--summary=' . $this->getOption( 'summary' ) ) : array(),
+				$this->hasOption( 'force' ) ? array( '--force' ) : array()
 			);
 		}
 		return $basicArgs;
