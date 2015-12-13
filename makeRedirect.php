@@ -12,6 +12,7 @@ class MakeRedirect extends Maintenance {
 		$this->addOption( 'no-self', 'Do not create self redirects', false );
 		$this->addOption( 'text', 'Extra text to add, if supported', false );
 		$this->addOption( 'summary', 'Edit summary to use', false );
+		$this->addOption( 'force', 'Force a re-edit when no change of redirect target is made', false );
 	}
 
 	public function doMake( $fromText, $toText ) {
@@ -31,7 +32,9 @@ class MakeRedirect extends Maintenance {
 		if ( $fromWikiPage->exists() ) {
 			$currentRedir = $fromWikiPage->getRedirectTarget();
 			if ( $currentRedir && $currentRedir->equals( $toTitle ) ) {
-				return array( 0, 'no-change' );
+				if ( !$this->hasOption( 'force' ) ) {
+					return array( 0, 'no-change' );
+				}
 			} elseif ( $this->getOption( 'no-edit' ) ) {
 				return array( 2, 'no-edit' );
 			}
