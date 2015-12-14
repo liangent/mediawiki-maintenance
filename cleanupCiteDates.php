@@ -79,6 +79,7 @@ class CleanupCiteDates extends PageDomMaintenanceExt {
 
 		$date = trim( html_entity_decode( preg_replace( '/&nbsp;/', ' ', $date ) ) );
 		$date = preg_replace( '/\[\[([^<>\[\]\|\{\}]+)\]\]/', '\1', $date );
+		$date = mb_convert_kana( $date, 'rnaskhc', 'utf-8' ); // full-width to half-width
 		$date = preg_replace( '/^(于|於)\s*|\s*(查阅|查閱|出版)$/', '', $date );
 		$date = preg_replace( '/(\d)(st|nd|rd|th)\b/', '\1', $date );
 
@@ -142,7 +143,7 @@ class CleanupCiteDates extends PageDomMaintenanceExt {
 
 		# Punctuations?
 
-		$date = preg_replace( '/(、|，|,) */', ', ', $date );
+		$date = preg_replace( '/(、|,) */', ', ', $date );
 
 		if ( $date !== $original && $this->validateDateString( $original = $date ) ) {
 			return $date;
