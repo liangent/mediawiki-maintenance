@@ -82,21 +82,21 @@ class CleanupCiteDates extends PageDomMaintenanceExt {
 		$date = preg_replace( '/^(于|於)\s*|\s*(查阅|查閱|出版)$/', '', $date );
 		$date = preg_replace( '/(\d)(st|nd|rd|th)\b/', '\1', $date );
 
-		if ( $date !== $original && $this->validateDateString( $date ) ) {
+		if ( $date !== $original && $this->validateDateString( $original = $date ) ) {
 			return $date;
 		}
 
 		# The only place where prefix 0's are required is YYYY-MM-DD.
 		$date = preg_replace( '/(?<!\d)0+(?=\d)/', '', $date );
 
-		if ( $date !== $original && $this->validateDateString( $date ) ) {
+		if ( $date !== $original && $this->validateDateString( $original = $date ) ) {
 			return $date;
 		}
 
 		# Multiple whitespaces are never valid.
 		$date = preg_replace( '/\s+/', ' ', $date );
 
-		if ( $date !== $original && $this->validateDateString( $date ) ) {
+		if ( $date !== $original && $this->validateDateString( $original = $date ) ) {
 			return $date;
 		}
 
@@ -121,7 +121,7 @@ class CleanupCiteDates extends PageDomMaintenanceExt {
 			$date = "{$year}年{$month}月";
 		}
 
-		if ( $date !== $original && $this->validateDateString( $date ) ) {
+		if ( $date !== $original && $this->validateDateString( $original = $date ) ) {
 			return $date;
 		}
 
@@ -144,13 +144,13 @@ class CleanupCiteDates extends PageDomMaintenanceExt {
 
 		$date = preg_replace( '/(、|，|,) */', ', ', $date );
 
-		if ( $date !== $original && $this->validateDateString( $date ) ) {
+		if ( $date !== $original && $this->validateDateString( $original = $date ) ) {
 			return $date;
 		}
 
 		$date = preg_replace( '/ *- */', '–', $date );
 
-		if ( $date !== $original && $this->validateDateString( $date ) ) {
+		if ( $date !== $original && $this->validateDateString( $original = $date ) ) {
 			return $date;
 		}
 
@@ -158,13 +158,13 @@ class CleanupCiteDates extends PageDomMaintenanceExt {
 
 		$date = preg_replace( '/ *[,\.] */', ' ', $date );
 
-		if ( $date !== $original && $this->validateDateString( $date ) ) {
+		if ( $date !== $original && $this->validateDateString( $original = $date ) ) {
 			return $date;
 		}
 
 		$date = preg_replace( '/(?<=\d) (?=\d)/', ', ', $date );
 
-		if ( $date !== $original && $this->validateDateString( $date ) ) {
+		if ( $date !== $original && $this->validateDateString( $original = $date ) ) {
 			return $date;
 		}
 	}
