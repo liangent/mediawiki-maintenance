@@ -125,6 +125,21 @@ class CleanupCiteDates extends PageDomMaintenanceExt {
 			return $date;
 		}
 
+		# Elements in wrong order without ambiguity
+		if ( preg_match( '/^(\d{1,2})\s*[–\-\/\.]\s*(\d{1,2})\s*[–\-\/\.]\s*(\d{4})$/u', $date, $matches ) ) {
+			list( $_, $e1, $e2, $year ) = array_map( 'intval', $matches );
+			$dateMDY = sprintf( '%04d-%02d-%02d', $year, $e1, $e2 );
+			$dateDMY = sprintf( '%04d-%02d-%02d', $year, $e2, $e1 );
+			$validMDY = $this->validateDateString( $dateMDY );
+			$validDMY = $this->validateDateString( $dateDMY );
+			if ( $validMDY && !$validDMY ) {
+				return $dateMDY;
+			}
+			if ( $validDMY && !$validMDY ) {
+				return $dateDMY;
+			}
+		}
+
 		# Punctuations?
 
 		$date = preg_replace( '/(、|，|,) */', ', ', $date );
