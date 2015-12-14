@@ -92,6 +92,13 @@ class CleanupCiteDates extends PageDomMaintenanceExt {
 			return $date;
 		}
 
+		# Multiple whitespaces are never valid.
+		$date = preg_replace( '/\s+/', ' ', $date );
+
+		if ( $date !== $original && $this->validateDateString( $date ) ) {
+			return $date;
+		}
+
 		if ( preg_match( '/^(\d{4})\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*日(?:\s*\d+\s*:\s*\d+(?:\s*:\s*\d+)?|\s*\d+\s*(?:时|時)(?:\s*\d+\s*分(?:\s*\d+\s*秒)?)?)?$/', $date, $matches ) ) {
 			list( $_, $year, $month, $day ) = array_map( 'intval', $matches );
 			$date = "{$year}年{$month}月{$day}日";
@@ -134,12 +141,6 @@ class CleanupCiteDates extends PageDomMaintenanceExt {
 		# Aggressive rules -- the resulting date will be revalidated anyway.
 
 		$date = preg_replace( '/\s*[,\.]\s*/', ' ', $date );
-
-		if ( $date !== $original && $this->validateDateString( $date ) ) {
-			return $date;
-		}
-
-		$date = preg_replace( '/\s+/', ' ', $date );
 
 		if ( $date !== $original && $this->validateDateString( $date ) ) {
 			return $date;
