@@ -133,7 +133,7 @@ class CleanupCiteDates extends PageDomMaintenanceExt {
 
 		# Aggressive rules -- the resulting date will be revalidated anyway.
 
-		$date = preg_replace( '/, *| +/', ' ', $date );
+		$date = preg_replace( '/[,\.] *| +/', ' ', $date );
 
 		if ( $date !== $original && $this->validateDateString( $date ) ) {
 			return $date;
