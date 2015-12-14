@@ -98,6 +98,9 @@ class CleanupCiteDates extends PageDomMaintenanceExt {
 		} elseif ( preg_match( '/^(\d{4})\s*[–\-\/\.]\s*(\d{1,2})\s*[–\-\/\.]\s*(\d{1,2})(?:\s+\d+\s*:\s*\d+(?:\s*:\s*\d+)?)?$/u', $date, $matches ) ) {
 			list( $_, $year, $month, $day ) = array_map( 'intval', $matches );
 			$date = sprintf( '%04d-%02d-%02d', $year, $month, $day );
+		} elseif ( preg_match( '/^(\d{4})(\d{2})(\d{2})$/u', $date, $matches ) ) {
+			list( $_, $year, $month, $day ) = array_map( 'intval', $matches );
+			$date = sprintf( '%04d-%02d-%02d', $year, $month, $day );
 		} elseif ( preg_match( '/^(\d{1,2})\s+(\d{1,2}),\s+(\d{4})$/u', $date, $matches ) ) {
 			# ProveIt and Yhz1221-bot
 			list( $_, $month, $day, $year ) = array_map( 'intval', $matches );
