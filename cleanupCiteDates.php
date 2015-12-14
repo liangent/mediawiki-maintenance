@@ -143,13 +143,13 @@ class CleanupCiteDates extends PageDomMaintenanceExt {
 
 		# Punctuations?
 
-		$date = preg_replace( '/(、|,) */', ', ', $date );
+		$date = preg_replace( '/(､|,) */', ', ', $date );
 
 		if ( $date !== $original && $this->validateDateString( $original = $date ) ) {
 			return $date;
 		}
 
-		$date = preg_replace( '/ *- */', '–', $date );
+		$date = preg_replace( '/ *[-‐‑‒–—―] */u', '–', $date );
 
 		if ( $date !== $original && $this->validateDateString( $original = $date ) ) {
 			return $date;
