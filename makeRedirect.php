@@ -10,6 +10,7 @@ class MakeRedirect extends Maintenance {
 		$this->addOption( 'bot', 'Mark edits as bot', false );
 		$this->addOption( 'no-edit', 'Do not edit existing pages', false );
 		$this->addOption( 'no-self', 'Do not create self redirects', false );
+		$this->addOption( 'no-red', 'Do not create redirects to red titles', false );
 		$this->addOption( 'text', 'Extra text to add, if supported', false );
 		$this->addOption( 'summary', 'Edit summary to use', false );
 		$this->addOption( 'force', 'Force a re-edit when no change of redirect target is made', false );
@@ -23,6 +24,9 @@ class MakeRedirect extends Maintenance {
 		}
 		if ( $fromTitle->equals( $toTitle ) && $this->hasOption( 'no-self' ) ) {
 			return array( 2, 'no-self' );
+		}
+		if ( !$toTitle->isKnown() && $this->hasOption( 'no-red' ) ) {
+			return array( 2, 'no-red' );
 		}
 		try {
 			$fromWikiPage = WikiPage::factory( $fromTitle );
