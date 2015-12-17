@@ -361,6 +361,8 @@ LUA
 					$template = 'arwiki';
 				} elseif ( $wgDBname === 'zhwiki' && $templateTitle->getPrefixedText() === 'Template:Translink' ) {
 					$template = 'zhwiki-tsl';
+				} elseif ( $wgDBname === 'zhwiki' && $templateTitle->getPrefixedText() === 'Template:Interlanguage link' ) {
+					$template = 'zhwiki-ill';
 				} elseif ( $wgDBname === 'zhwiki' &&
 					$templateTitle->getBaseTitle()->getPrefixedText() === 'Template:Internal link helper'
 				) {
@@ -376,8 +378,10 @@ LUA
 				$func = 'trim';
 				switch ( $template . '!' . $arg['index'] . '!' . trim( $this->nodeToWikitext( $arg['name'] ) ) ) {
 				case 'zhwiki-tsl!1!':
+				case 'zhwiki-ill!1!':
 				case 'arwiki!3!':
 				case 'zhwiki-tsl!!1':
+				case 'zhwiki-ill!!1':
 				case 'arwiki!!3':
 				case 'arwiki!!لغ':
 					$maybeLang = strtolower( $func( $this->nodeToWikitext( $arg['value'] ) ) );
@@ -386,31 +390,37 @@ LUA
 					}
 					break;
 				case 'zhwiki-ilh!1!':
+				case 'zhwiki-ill!2!':
 				case 'zhwiki-tsl!3!':
 				case 'arwiki!1!':
 					$func = $noop;
 				case 'zhwiki-ilh!!1':
+				case 'zhwiki-ill!!2':
 				case 'zhwiki-tsl!!3':
 				case 'arwiki!!1':
 				case 'arwiki!!عر':
 					$local = $func( $this->nodeToWikitext( $arg['value'] ) );
 					break;
 				case 'zhwiki-ilh!2!':
+				case 'zhwiki-ill!3!':
 				case 'zhwiki-tsl!2!':
 				case 'arwiki!2!':
 					$func = $noop;
 				case 'zhwiki-ilh!!2':
+				case 'zhwiki-ill!!3':
 				case 'zhwiki-tsl!!2':
 				case 'arwiki!!2':
 				case 'arwiki!!تر':
 					$interwiki = $func( $this->nodeToWikitext( $arg['value'] ) );
 					break;
 				case 'zhwiki-ilh!3!':
+				case 'zhwiki-ill!4!':
 				case 'zhwiki-tsl!4!':
 				case 'arwiki!4!':
 					$func = $noop;
 				case 'zhwiki-ilh!!3':
 				case 'zhwiki-ilh!!d':
+				case 'zhwiki-ill!!4':
 				case 'zhwiki-tsl!!4':
 				case 'arwiki!!4':
 				case 'arwiki!!نص':
@@ -425,7 +435,7 @@ LUA
 			return;
 		}
 
-		if ( $template === 'zhwiki-ilh' ) {
+		if ( $template === 'zhwiki-ilh' || $template === 'zhwiki-ill' ) {
 			if ( trim( $interwiki ) === '' ) {
 				$interwiki = $local;
 			}
