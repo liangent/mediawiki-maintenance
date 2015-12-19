@@ -1,8 +1,8 @@
 <?php
 
-require_once( __DIR__ . '/Maintenance.php' );
+require_once( __DIR__ . '/PageMaintenance.php' );
 
-class CheckNewusermessageSignatures extends Maintenance {
+class CheckNewusermessageSignatures extends PageMaintenance {
 
 	public function __construct() {
 		parent::__construct();
@@ -109,7 +109,7 @@ class CheckNewusermessageSignatures extends Maintenance {
 	}
 
 	public function execute() {
-		global $wgParser, $wgLabs;
+		global $wgLabs;
 		if ( $this->hasOption( 'maxlag' ) ) {
 			$maxlag = intval( $this->getOption( 'maxlag' ) );
 			$lag = $wgLabs->replag();
@@ -118,11 +118,14 @@ class CheckNewusermessageSignatures extends Maintenance {
 				return;
 			}
 		}
-		$t = Title::makeTitle( NS_MEDIAWIKI, 'Newusermessage-signatures' );
-		$r = $t ? Revision::newFromTitle( $t ) : null;
+		parent::execute();
+	}
+
+	public function executeTitle( $t ) {
+		$r = Revision::newFromTitle( $t );
 		$c = $r ? $r->getContent() : null;
 		if ( !$c ) {
-			$this->output( "MediaWiki:Newusermessage-signatures is not in use.\n" );
+			$this->output( "{$t->getPrefixedText()} is not in use.\n" );
 			return;
 		}
 		$text = $c->serialize();
