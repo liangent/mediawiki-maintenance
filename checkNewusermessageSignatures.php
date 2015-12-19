@@ -38,6 +38,13 @@ class CheckNewusermessageSignatures extends PageMaintenance {
 			return;
 		}
 
+		$updateStatus = function( $username, $newstatus ) use ( $oldstatus ) {
+			if ( $newstatus != $oldstatus ) {
+				$this->output( "$username status: $oldstatus -> $newstatus\n" );
+				$this->changes[] = array( $username, $oldstatus, $newstatus );
+			}
+		};
+
 		# First, figure out who is this:
 
 		if ( !$opts ) {
@@ -74,6 +81,7 @@ class CheckNewusermessageSignatures extends PageMaintenance {
 		} else {
 			$this->output( ".. noname\n" );
 			$sign = "# noname|$rawsign";
+			$updateStatus( '', 'noname' );
 			return;
 		}
 
@@ -85,6 +93,7 @@ class CheckNewusermessageSignatures extends PageMaintenance {
 		} else {
 			$this->output( ".. nouser\n" );
 			$sign = "# nouser|$rawsign";
+			$updateStatus( $user ? $user->getName() : $username, 'nouser' );
 			return;
 		}
 
@@ -100,11 +109,13 @@ class CheckNewusermessageSignatures extends PageMaintenance {
 		if ( $user->isBlocked() ) {
 			$this->output( ".. blocked\n" );
 			$sign = "# blocked|$rawsign";
+			$updateStatus( $user->getName(), 'blocked' );
 			return;
 		} else {
 			$this->output( ".. not blocked\n" );
 		}
 
+		$updateStatus( $user->getName(), '' );
 		$sign = "* $rawsign";
 	}
 
@@ -131,6 +142,7 @@ class CheckNewusermessageSignatures extends PageMaintenance {
 		$text = $c->serialize();
 		$this->output( "checking...\n" );
 		$signatures = explode( "\n", $text );
+		$this->changes = array();
 		foreach ( $signatures as &$signature ) {
 			$this->processSignature( $signature );
 		}
