@@ -133,6 +133,7 @@ class CheckNewusermessageSignatures extends PageMaintenance {
 	}
 
 	public function executeTitle( $t ) {
+		global $wgContLang;
 		$r = Revision::newFromTitle( $t );
 		$c = $r ? $r->getContent() : null;
 		if ( !$c ) {
@@ -146,11 +147,20 @@ class CheckNewusermessageSignatures extends PageMaintenance {
 		foreach ( $signatures as &$signature ) {
 			$this->processSignature( $signature );
 		}
+		$changePieces = array();
+		foreach ( $this->changes as $change ) {
+			$changePieces[] = wfMessage( 'ts-newusermessage-signatures-change' )
+				->params( $change )->inContentLanguage()->text();
+		}
 		$newtext = implode( "\n", $signatures );
 		if ( $newtext !== $text ) {
 			$this->output( 'editing...' );
 			$page = WikiPage::factory( $t );
-			$st = $page->doEdit( $newtext, wfMessage( 'ts-newusermessage-signatures-update' )->text(), 0, $r->getId() );
+			$msg = count( $changePieces ) > 0
+				? wfMessage( 'ts-newusermessage-signatures-update' )
+					->params( $wgContLang->listToText( $changePieces ) )
+				: wfMessage( 'ts-newusermessage-signatures-nochange' );
+			$st = $page->doEdit( $newtext, $msg->inContentLanguage()->text(), 0, $r->getId() );
 			if ( $st->isGood() ) {
 				$this->output( " ok.\n" );
 			} else {
