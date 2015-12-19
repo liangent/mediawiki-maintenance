@@ -11,7 +11,7 @@ class CheckNewusermessageSignatures extends PageMaintenance {
 	}
 
 	private function processSignature( &$sign ) {
-		global $wgParser, $wgContLang;
+		global $wgParser, $wgContLang, $wgActiveUserDays;
 		static $opts = null;
 
 		$this->output( "$sign\n" );
@@ -113,6 +113,33 @@ class CheckNewusermessageSignatures extends PageMaintenance {
 			return;
 		} else {
 			$this->output( ".. not blocked\n" );
+		}
+
+		# Is this user active?
+
+		# Taken from Special:ActiveUsers
+		$dbr = wfGetDB( DB_SLAVE );
+		$activeUserSeconds = $wgActiveUserDays * 86400;
+		$timestamp = $dbr->timestamp( wfTimestamp( TS_UNIX ) - $activeUserSeconds );
+		$active = $dbr->selectField(
+			'recentchanges',
+			'1',
+			array(
+				'rc_user_text' => $user->getName(),
+				'rc_type != ' . $dbr->addQuotes( RC_EXTERNAL ), // Don't count wikidata.
+				'rc_log_type IS NULL OR rc_log_type != ' . $dbr->addQuotes( 'newusers' ),
+				'rc_timestamp >= ' . $dbr->addQuotes( $timestamp ),
+			),
+			__METHOD__
+		);
+
+		if ( !$active ) {
+			$this->output( ".. inactive\n" );
+			$sign = "# inactive|$rawsign";
+			$updateStatus( $user->getName(), 'inactive' );
+			return;
+		} else {
+			$this->output( ".. active\n" );
 		}
 
 		$updateStatus( $user->getName(), '' );
