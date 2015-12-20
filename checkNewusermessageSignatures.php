@@ -26,7 +26,7 @@ class CheckNewusermessageSignatures extends PageMaintenance {
 			$parts = explode( '|', $rest, 2 );
 			if ( count( $parts ) == 2 ) {
 				list( $oldstatus, $rawsign ) = $parts;
-				if ( $oldstatus == 'disabled' ) {
+				if ( $oldstatus == 'disabled' || $oldstatus == 'blocked' ) {
 					return;
 				}
 				break;
