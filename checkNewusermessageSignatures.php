@@ -22,6 +22,7 @@ class CheckNewusermessageSignatures extends PageMaintenance {
 		$rest = trim( substr( $sign, 1 ) );
 		switch ( $firstChar ) {
 		case '#':
+		case ':':
 			$parts = explode( '|', $rest, 2 );
 			if ( count( $parts ) == 2 ) {
 				list( $oldstatus, $rawsign ) = $parts;
@@ -70,9 +71,9 @@ class CheckNewusermessageSignatures extends PageMaintenance {
 					$linkuser = $wgContLang->ucFirst( $linkuser );
 					if ( $username === false ) {
 						$username = $linkuser;
-					}# elseif ( $username !== $linkuser ) {
+					#} elseif ( $username !== $linkuser ) {
 					#	$username = null;
-					#}
+					}
 				}
 			}
 		}
@@ -80,7 +81,7 @@ class CheckNewusermessageSignatures extends PageMaintenance {
 			$this->output( ".. user name: $username\n" );
 		} else {
 			$this->output( ".. noname\n" );
-			$sign = "# noname|$rawsign";
+			$sign = ": noname|$rawsign";
 			$updateStatus( '', 'noname' );
 			return;
 		}
@@ -92,7 +93,7 @@ class CheckNewusermessageSignatures extends PageMaintenance {
 			$this->output( ".. user id: {$user->getId()}\n" );
 		} else {
 			$this->output( ".. nouser\n" );
-			$sign = "# nouser|$rawsign";
+			$sign = ": nouser|$rawsign";
 			$updateStatus( $user ? $user->getName() : $username, 'nouser' );
 			return;
 		}
@@ -108,7 +109,7 @@ class CheckNewusermessageSignatures extends PageMaintenance {
 
 		if ( $user->isBlocked() ) {
 			$this->output( ".. blocked\n" );
-			$sign = "# blocked|$rawsign";
+			$sign = ": blocked|$rawsign";
 			$updateStatus( $user->getName(), 'blocked' );
 			return;
 		} else {
@@ -135,7 +136,7 @@ class CheckNewusermessageSignatures extends PageMaintenance {
 
 		if ( !$active ) {
 			$this->output( ".. inactive\n" );
-			$sign = "# inactive|$rawsign";
+			$sign = ": inactive|$rawsign";
 			$updateStatus( $user->getName(), 'inactive' );
 			return;
 		} else {
