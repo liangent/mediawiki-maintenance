@@ -7,7 +7,7 @@ require_once __DIR__ . '/Maintenance.php';
  *
  * @ingroup Maintenance
  */
-class EditCLI extends Maintenance {
+class StashCLI extends Maintenance {
 	public function __construct() {
 		parent::__construct();
 		$this->mDescription = "Stash some text from the command line, text is from stdin";
@@ -77,5 +77,5 @@ class EditCLI extends Maintenance {
 	}
 }
 
-$maintClass = "EditCLI";
+$maintClass = "StashCLI";
 require_once RUN_MAINTENANCE_IF_MAIN;
