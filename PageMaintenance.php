@@ -14,6 +14,7 @@ class PageMaintenance extends Maintenance {
 		$this->addOption( 'random-count', 'The maximum number of pages for random processing.' );
 		$this->addOption( 'random-ns', 'Only process random pages in given namespace(s).' );
 		$this->addOption( 'start', 'Specify a page ID to start processing.' );
+		$this->addOption( 'file', 'Specify a list of titles from the given file to work on.' );
 		$this->addOption( 'links', 'Process pages having links to some target. "template" or "page" only currently.' );
 		$this->addOption( 'links-page', 'Link target for --links= parameter.' );
 		$this->addOption( 'links-reverse', 'Use the other direction in --links= parameter.' );
@@ -160,6 +161,20 @@ class PageMaintenance extends Maintenance {
 			};
 			$this->output( "Working on pages starting from page ID > $start.\n" );
 		}
+		if ( is_null( $titles ) && $this->hasOption( 'file' ) ) {
+			$titles = array();
+			$source = 'file';
+			$fileName = $this->getOption( 'file' );
+			$file = fopen( $fileName, 'r' );
+			while ( $line = fgets( $file ) ) {
+				$title = Title::newFromText( trim( $line ) );
+				if ( $title ) {
+					$titles[] = $title;
+				}
+			}
+			fclose( $file );
+			$this->output( "Working on pages listed in $fileName.\n" );
+		}
 		if ( is_null( $titles ) && $this->hasOption( 'links' ) ) {
 			$linkType = $this->getOption( 'links' );
 			$linkInfo = array(
@@ -246,7 +261,7 @@ class PageMaintenance extends Maintenance {
 			);
 		}
 		if ( is_null( $titles ) ) {
-			$this->output( "Please specify one of page, category or random-count.\n" );
+			$this->output( "Please specify one of page generation arguments.\n" );
 			return;
 		}
 		$this->pageSource = $source;
