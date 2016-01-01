@@ -8,6 +8,7 @@ class CleanupDuplicateArgs extends PageDomMaintenanceExt {
 		'Template:Chess diagram',
 		'Template:Xiangqi diagram',
 		'Template:Xiangqi-position',
+		'Template:Shogi diagram',
 	);
 
 	public function __construct() {
