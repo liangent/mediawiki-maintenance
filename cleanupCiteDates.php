@@ -135,11 +135,11 @@ class CleanupCiteDates extends PageDomMaintenanceExt {
 			list( $_, $e1, $e2, $year ) = array_map( 'intval', $matches );
 			$dateMDY = sprintf( '%04d-%02d-%02d', $year, $e1, $e2 );
 			$dateDMY = sprintf( '%04d-%02d-%02d', $year, $e2, $e1 );
-			if ( $dateMDY === $dateDMY ) {
+			$validMDY = $this->validateDateString( $dateMDY );
+			if ( $dateMDY === $dateDMY && $validMDY ) {
 				// 01-01-2016
 				return $dateMDY;
 			}
-			$validMDY = $this->validateDateString( $dateMDY );
 			$validDMY = $this->validateDateString( $dateDMY );
 			if ( $validMDY && !$validDMY ) {
 				return $dateMDY;
