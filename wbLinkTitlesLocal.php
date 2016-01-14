@@ -197,11 +197,9 @@ class WbLinkTitlesLocal extends Maintenance {
 				if ( isset( $siteLinks[$siteLink->getSiteId()] ) ) {
 					$storedSiteLink = $siteLinks[$siteLink->getSiteId()];
 				} else {
-					$storedSiteLink = new Wikibase\DataModel\SiteLink(
-						$siteLink->getSiteId(), '' # Make up an invalid site link
-					);
+					$storedSiteLink = null;
 				}
-				$pageName1 = $storedSiteLink->getPageName();
+				$pageName1 = $storedSiteLink ? $storedSiteLink->getPageName() : '';
 				$pageName2 = $siteLink->getPageName();
 				if ( $pageName1 === $pageName2 ) {
 					$pageName = $pageName1; # The same
@@ -232,7 +230,7 @@ class WbLinkTitlesLocal extends Maintenance {
 
 					}
 				}
-				$badges1 = $storedSiteLink->getBadges();
+				$badges1 = $storedSiteLink ? $storedSiteLink->getBadges() : array();
 				$badges2 = $siteLink->getBadges();
 				$badges = array_unique( array_merge( $badges1, $badges2 ) );
 				$siteLinks[$siteLink->getSiteId()] = new Wikibase\DataModel\SiteLink(
