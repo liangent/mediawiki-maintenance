@@ -35,7 +35,7 @@ class CleanupCiteDates extends PageDomMaintenanceExt {
 		'access-date', 'accessdate',
 		'air-date', 'airdate',
 		'archive-date', 'archivedate',
-		'date',
+		'date', 'year',
 		'doi-broken', 'doi-broken-date', 'doi-inactive-date', 'DoiBroken', 'doi_brokendate', 'doi_inactivedate',
 		'lay-date', 'laydate',
 		'publicationdate', 'publication-date',
