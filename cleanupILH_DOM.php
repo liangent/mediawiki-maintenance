@@ -52,13 +52,21 @@ class CleanupILH_DOM extends PageDomMaintenanceExt {
 			list( $site, $_ ) = $wgConf->siteFromDB( $wgDBname );
 			self::$suffix = $site == 'wikipedia' ? 'wiki' : $site;
 		}
-		$maybeDb = str_replace( '-', '_', $lang ) . self::$suffix;
+		if ( $lang === 'wikidata' ) {
+			$maybeDb = 'wikidatawiki'; # Ignore site-specific suffix
+		} else {
+			$maybeDb = str_replace( '-', '_', $lang ) . self::$suffix;
+		}
 
 		if ( in_array( $maybeDb, $wgLocalDatabases ) ) {
 			return $maybeDb;
 		} else {
 			return false;
 		}
+	}
+
+	public function isKnownLanguageTag( $lang ) {
+		return Language::isKnownLanguageTag( $lang ) || $lang === 'wikidata';
 	}
 
 	public function checkRedirect( $pageTitle, $title, $newTitle, $fdbn, $interwiki, $interwikiData, $ll_title, $rd ) {
@@ -112,7 +120,7 @@ LUA
 	}
 
 	private function findAlias( $pageTitle, &$title, $lang, $interwiki, $local ) {
-		global $wgContLang, $wgLocalInterwikis, $IP;
+		global $wgContLang, $wgLocalInterwikis, $IP, $wgDBname;
 
 		$fdbn = $this->langToDB( $lang );
 		if ( $fdbn === false ) {
@@ -188,6 +196,18 @@ LUA
 		} catch ( DBError $e ) {
 			$this->output( " (dbqerror $fdbn)" );
 			return false;
+		}
+		if ( $ll_title === false && $fdbn === 'wikidatawiki' && $data->namespace == 0 ) {
+			$ll_title = $fdbr->selectField(
+				'wb_items_per_site',
+				'ips_site_page',
+				array(
+					'ips_item_id' => substr( $data->dbkey, 1 ),
+					'ips_site_id' => $wgDBname,
+				),
+				__METHOD__
+			);
+			$rd = null;
 		}
 		if ( $ll_title === false ) {
 			return false;
@@ -367,7 +387,7 @@ LUA
 					$templateTitle->getBaseTitle()->getPrefixedText() === 'Template:Internal link helper'
 				) {
 					$maybeLang = strtolower( $templateTitle->getSubpageText() );
-					if ( Language::isKnownLanguageTag( $maybeLang ) ) {
+					if ( $this->isKnownLanguageTag( $maybeLang ) ) {
 						$template = 'zhwiki-ilh';
 						$lang = $maybeLang;
 					}
@@ -385,7 +405,7 @@ LUA
 				case 'arwiki!!3':
 				case 'arwiki!!لغ':
 					$maybeLang = strtolower( $func( $this->nodeToWikitext( $arg['value'] ) ) );
-					if ( Language::isKnownLanguageTag( $maybeLang ) ) {
+					if ( $this->isKnownLanguageTag( $maybeLang ) ) {
 						$lang = $maybeLang;
 					}
 					break;
