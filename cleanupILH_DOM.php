@@ -554,6 +554,7 @@ LUA
 				self::$templates = array(
 					Title::makeTitleSafe( NS_TEMPLATE, 'Translink' ),
 					Title::makeTitleSafe( NS_TEMPLATE, 'Internal link helper' ),
+					Title::makeTitleSafe( NS_TEMPLATE, 'Interlanguage link' ),
 				);
 			}
 		} elseif ( $wgDBname === 'arwiki' ) {
