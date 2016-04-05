@@ -263,7 +263,7 @@ class WbLinkTitlesLocal extends Maintenance {
 		$maxRetries = intval( $this->getOption( 'max-retries', 3 ) );
 		$clearedPieces = array();
 		foreach ( $clearItemIds as $clearItemId ) {
-			$redirect = new Wikibase\Lib\Store\EntityRedirect( $clearItemId, $targetItem->getId() );
+			$redirect = new Wikibase\DataModel\Entity\EntityRedirect( $clearItemId, $targetItem->getId() );
 			$saved = false;
 			for ( $i = 0; $i <= $maxRetries; $i++ ) {
 				try {
@@ -388,14 +388,27 @@ class WbLinkTitlesLocal extends Maintenance {
 	}
 
 	public function executeSitePages( $tries = 0 ) {
+		global $wgDBname;
+
 		$itemIds = array();
 		$uniqueItemIds = array();
 		$uniqueItemId = false;
 		$siteLinkCache = Wikibase\StoreFactory::getStore()->newSiteLinkStore();
 		$itemUnlinked = Wikibase\DataModel\Entity\Item::newEmpty();
 		$sitePages = $this->sitePages;
+		$entityIdLookup = Wikibase\Repo\WikibaseRepo::getDefaultInstance()->getEntityIdLookup();
 		foreach ( $sitePages as $siteId => $pageName ) {
 			$siteLink = new Wikibase\DataModel\SiteLink( $siteId, $pageName );
+			if ( $siteId === $wgDBname ) {
+				$title = Title::newFromText( $pageName );
+				if ( $title ) {
+					$entityId = $entityIdLookup->getEntityIdForTitle( $title );
+					if ( $entityId && $entityId->getEntityType() === 'item' ) {
+						$uniqueItemIds[$entityId->getSerialization()] = $entityId;
+						continue;
+					}
+				}
+			}
 			$itemId = $siteLinkCache->getItemIdForSiteLink( $siteLink );
 			if ( $itemId ) {
 				$itemIds[$siteId] = $itemId;
