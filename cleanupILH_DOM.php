@@ -119,12 +119,29 @@ LUA
 		}
 	}
 
-	private function findAlias( $pageTitle, &$title, $lang, $interwiki, $local ) {
+	public function resolveTitleRedirect( $title ) {
+		try {
+			$page = WikiPage::factory( $title );
+		} catch ( MWException $e ) {
+			return $title;
+		}
+		if ( $page ) {
+			$redirectTitle = $page->getRedirectTarget();
+			if ( $redirectTitle ) {
+				return $redirectTitle;
+			}
+		}
+		return $title;
+	}
+
+	public function findAlias( $pageTitle, &$title, $lang, $interwiki, $local, &$desc ) {
 		global $wgContLang, $wgLocalInterwikis, $IP, $wgDBname;
+
+		$titleKnown = $this->isTitleKnown( $title );
 
 		$fdbn = $this->langToDB( $lang );
 		if ( $fdbn === false ) {
-			return false;
+			return $titleKnown;
 		}
 		try {
 			$fdbr = wfGetDB( DB_SLAVE, array(), $fdbn );
@@ -133,7 +150,7 @@ LUA
 			$this->output( " (dbcerror $fdbn)" );
 		}
 		if ( !$fdbr ) {
-			return false;
+			return $titleKnown;
 		}
 
 		# $fdbn is already validated with wfGetDB().
@@ -142,7 +159,7 @@ LUA
 		$data = FormatJson::decode( trim( wfShellExec( $cmd, $retVal, array(), array( 'memory' => 0 ) ) ) );
 		if ( $retVal != 0 || !isset( $data->namespace ) || !isset( $data->dbkey )
 			|| !isset( $data->interwiki ) || $data->interwiki !== '' ) {
-				return false;
+				return $titleKnown;
 		}
 
 		try {
@@ -195,7 +212,7 @@ LUA
 			}
 		} catch ( DBError $e ) {
 			$this->output( " (dbqerror $fdbn)" );
-			return false;
+			return $titleKnown;
 		}
 		if ( $ll_title === false && $fdbn === 'wikidatawiki' && $data->namespace == 0 ) {
 			$ll_title = $fdbr->selectField(
@@ -210,7 +227,7 @@ LUA
 			$rd = null;
 		}
 		if ( $ll_title === false ) {
-			return false;
+			return $titleKnown;
 		}
 
 		$newTitle = Title::newFromText( $ll_title );
@@ -219,7 +236,7 @@ LUA
 		if ( $newTitleKnown !== false ) {
 			# Hooray we managed to find an alias!
 			$redirected = false;
-			if ( $title ) {
+			if ( $title && $titleKnown === false ) {
 				$checkResult = $this->checkRedirect( $pageTitle, $title, $newTitle, $fdbn,
 					$interwiki, $data, $ll_title, $rd );
 				if ( is_string( $checkResult ) ) {
@@ -249,21 +266,49 @@ LUA
 						$this->output( ' ERROR)' );
 					}
 				} else if ( $checkResult === null ) {
-					return null;
+					return $titleKnown; // should be false
 				}
 			}
 			if ( $redirected ) {
 				return null; // the redirect must be a new page
-			} elseif ( $newTitleKnown ) {
+			}
+			// Here: $newTitleKnown is either true or null;
+			// $title can be null (if an invalid title if given) or not.
+			// If it's not null, see $titleKnown for its status.
+			if ( $newTitleKnown ) { // $newTitle is a good target
+				if ( $title ) {
+					if ( $titleKnown === false ) {
+						// Given target does not exist and is prevented from redirection
+						// (or there was an error during redirect creation)
+					} elseif ( $titleKnown ) {
+						// Both $newTitle and $title exist. Decide what to do here.
+						$titleRedirected = $this->resolveTitleRedirect( $title );
+						$newTitleRedirected = $this->resolveTitleRedirect( $newTitle );
+						if ( $titleRedirected->equals( $newTitleRedirected ) ) {
+							return true; // They're actually the same...
+						}
+						if ( $desc !== '' && $desc !== $local ) {
+							return null; // What to do here? Skip it for now.
+						} else {
+							// Some lazy people use {{link-en|A|B}} instead of {{link-en|A (X)|B|A}}
+							$desc = $local; // Use original text to avoid title normalization
+							$this->output( " (rewrite [[$local]] => [[ |$local]])" );
+						}
+					} else {
+						return null; // $titleKnown must be null; wait for it to be mature enough.
+					}
+				} else {
+					// $title is invalid. Use $newTitle as $title
+				}
 				$title = $newTitle;
 				$this->output( " (alias [[$local]] => [[{$title->getFullText()}]])" );
 				return true;
 			} else {
-				return null; // $newTitleKnown must be null
+				return null; // $newTitleKnown must be null; wait for it to be mature enough.
 			}
 		}
 
-		return false;
+		return $titleKnown;
 	}
 
 	public function executeTitle( $title, $ident = '', $recur = true ) {
@@ -366,17 +411,7 @@ LUA
 				if ( !$templateTitle ) {
 					continue;
 				}
-				try {
-					$templatePage = WikiPage::factory( $templateTitle );
-				} catch ( MWException $e ) {
-					$templatePage = null;
-				}
-				if ( $templatePage ) {
-					$redirectTitle = $templatePage->getRedirectTarget();
-					if ( $redirectTitle ) {
-						$templateTitle = $redirectTitle;
-					}
-				}
+				$templateTitle = $this->resolveTitleRedirect( $templateTitle );
 				if ( $wgDBname === 'arwiki' && $templateTitle->getPrefixedText() === 'قالب:وصلة إنترويكي' ) {
 					$template = 'arwiki';
 				} elseif ( $wgDBname === 'zhwiki' && $templateTitle->getPrefixedText() === 'Template:Translink' ) {
@@ -479,9 +514,10 @@ LUA
 
 		$title = Title::newFromText( $local );
 		$wgContLang->findVariantLink( $local, $title, true );
-		$localKnown = $this->isTitleKnown( $title );
-		if ( $localKnown === false && trim( $lang ) !== '' && trim( $interwiki ) !== '' ) {
-			$localKnown = $this->findAlias( $this->title, $title, $lang, $interwiki, $local );
+		if ( trim( $lang ) !== '' && trim( $interwiki ) !== '' ) {
+			$localKnown = $this->findAlias( $this->title, $title, $lang, $interwiki, $local, $desc );
+		} else {
+			$localKnown = $this->isTitleKnown( $title );
 		}
 		if ( $localKnown ) {
 			$foreignDb = $this->langToDB( $lang );
